@@ -50,7 +50,7 @@ class _AppShellState extends State<AppShell> {
           NavigationDestination(
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore_rounded),
-            label: 'Discover',
+            label: 'Spots',
           ),
           NavigationDestination(
             icon: Icon(Icons.bookmark_border_rounded),
