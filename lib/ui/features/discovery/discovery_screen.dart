@@ -6,6 +6,7 @@ import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
 import '../../../data/services/location_service.dart';
 import '../../../domain/models/venue.dart';
+import '../../../domain/use_cases/map_marker_planner.dart';
 import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
@@ -75,8 +76,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                     userAgentPackageName: 'io.bamware.brewdesk',
                   ),
                   MarkerLayer(
-                    markers: venues
-                        .take(24)
+                    markers: MapMarkerPlanner.plan(venues)
                         .map(
                           (venue) => Marker(
                             point: LatLng(venue.lat, venue.lng),
