@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
+import '../../../data/services/connectivity_service.dart';
 import '../../../data/services/location_service.dart';
 import '../../../domain/models/venue.dart';
 import '../../../domain/use_cases/map_marker_planner.dart';
@@ -19,11 +20,16 @@ class DiscoveryScreen extends StatefulWidget {
     required this.venueRepository,
     required this.savedVenues,
     required this.locationService,
+    @visibleForTesting this.connectivity,
   });
 
   final VenueRepository venueRepository;
   final SavedVenuesRepository savedVenues;
   final LocationService locationService;
+
+  /// Test seam for the offline→online auto-retry (brewdesk#11) — defaults to
+  /// the real connectivity_plus stream.
+  final ConnectivityService? connectivity;
 
   @override
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
@@ -33,6 +39,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   late final DiscoveryViewModel _model = DiscoveryViewModel(
     widget.venueRepository,
     widget.locationService,
+    connectivity: widget.connectivity ?? const ConnectivityService(),
   );
   final MapController _mapController = MapController();
 
@@ -107,12 +114,21 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               if (_model.error != null)
                 Center(
                   child: _ErrorCard(
+                    key: Key(
+                      _model.errorKind == DiscoveryErrorKind.offline
+                          ? 'discovery-state-offline'
+                          : 'discovery-state-engine-error',
+                    ),
                     message: _model.error!,
+                    kind: _model.errorKind ?? DiscoveryErrorKind.engine,
                     onRetry: _model.load,
                   ),
                 )
               else if (_model.loading && venues.isEmpty)
-                const Center(child: CircularProgressIndicator())
+                const Center(
+                  key: Key('discovery-state-loading'),
+                  child: CircularProgressIndicator(),
+                )
               else
                 _venueShelf(venues),
             ],
@@ -211,15 +227,29 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
           ),
           child: venues.isEmpty
               ? ListView(
+                  key: const Key('discovery-state-empty'),
                   controller: controller,
-                  children: const [
-                    SizedBox(height: 12),
-                    _ShelfHandle(),
+                  children: [
+                    const SizedBox(height: 12),
+                    const _ShelfHandle(),
                     Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        'No spots match these filters yet.',
-                        textAlign: TextAlign.center,
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'No spots in this view.',
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_model.activeFilterCount > 0) ...[
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              key: const Key('discovery-clear-filters'),
+                              onPressed: _model.resetFilters,
+                              child: const Text('Clear filters'),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
@@ -320,8 +350,14 @@ class _ShelfHandle extends StatelessWidget {
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onRetry});
+  const _ErrorCard({
+    super.key,
+    required this.message,
+    required this.kind,
+    required this.onRetry,
+  });
   final String message;
+  final DiscoveryErrorKind kind;
   final Future<void> Function() onRetry;
 
   @override
@@ -333,7 +369,12 @@ class _ErrorCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 34),
+            Icon(
+              kind == DiscoveryErrorKind.offline
+                  ? Icons.wifi_off_rounded
+                  : Icons.cloud_off_rounded,
+              size: 34,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
