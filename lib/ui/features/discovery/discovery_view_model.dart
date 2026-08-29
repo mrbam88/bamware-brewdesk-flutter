@@ -5,7 +5,22 @@ import '../../../data/repositories/venue_repository.dart';
 import '../../../data/services/location_service.dart';
 import '../../../domain/models/venue.dart';
 
-enum DiscoveryFilter { laptopFriendly, fastWifi, outlets, cafe, library, park }
+/// Wi-Fi floor for the tri-state Wi-Fi filter. `ok` and `fast` mirror the
+/// engine's `WIFI_ORDER` tiers; "Any" is represented by a null selection.
+enum WifiLevel { ok, fast }
+
+/// Outlets floor for the tri-state Outlets filter. Mirrors the engine's
+/// `OUTLET_ORDER` tiers; "Any" is represented by a null selection.
+enum OutletsLevel { some, plenty }
+
+enum WorkVenueType { cafe, library, park }
+
+/// Client-side filter predicate for the discovery list (brewdesk#77 parity
+/// with iOS `VenueFilter`): a value outside the known vocabulary — most
+/// commonly "unknown" — is never evidence against a venue, so only claims
+/// that are known AND known to sit below the chosen floor get excluded.
+const Map<String, int> _wifiTiers = {'slow': 1, 'ok': 2, 'fast': 3};
+const Map<String, int> _amountTiers = {'scarce': 1, 'some': 2, 'plenty': 3};
 
 class DiscoveryViewModel extends ChangeNotifier {
   DiscoveryViewModel(this._repository, this._locationService);
@@ -20,14 +35,32 @@ class DiscoveryViewModel extends ChangeNotifier {
   String _query = '';
   CoverageLevel _coverage = CoverageLevel.researched;
   LatLng _center = manhattan;
-  final Set<DiscoveryFilter> _filters = {};
+
+  bool _laptopFriendly = false;
+  WifiLevel? _minWifi;
+  OutletsLevel? _minOutlets;
+  WorkVenueType? _venueType;
 
   bool get loading => _loading;
   String? get error => _error;
   String get query => _query;
   CoverageLevel get coverage => _coverage;
   LatLng get center => _center;
-  Set<DiscoveryFilter> get filters => Set.unmodifiable(_filters);
+  int get totalVenues => _venues.length;
+
+  bool get laptopFriendly => _laptopFriendly;
+  WifiLevel? get minWifi => _minWifi;
+  OutletsLevel? get minOutlets => _minOutlets;
+  WorkVenueType? get venueType => _venueType;
+
+  /// Active count across the four dimensions this menu owns — drives both
+  /// the filter button's badge and the "Reset N filters" row.
+  int get activeFilterCount => [
+    _laptopFriendly,
+    _minWifi != null,
+    _minOutlets != null,
+    _venueType != null,
+  ].where((active) => active).length;
 
   List<Venue> get visibleVenues {
     final needle = _query.trim().toLowerCase();
@@ -41,27 +74,29 @@ class DiscoveryViewModel extends ChangeNotifier {
               )) {
             return false;
           }
-          if (_filters.contains(DiscoveryFilter.laptopFriendly) &&
+          if (_laptopFriendly &&
               const {
                 'discouraged',
                 'weekends_banned',
               }.contains(venue.attributes.laptopPolicy.value)) {
             return false;
           }
-          if (_filters.contains(DiscoveryFilter.fastWifi) &&
-              const {'slow', 'ok'}.contains(venue.attributes.wifi.value)) {
+          if (_minWifi != null) {
+            final tier = _wifiTiers[venue.attributes.wifi.value];
+            if (tier != null && tier < _wifiTiers[_minWifi!.name]!) {
+              return false;
+            }
+          }
+          if (_minOutlets != null) {
+            final tier = _amountTiers[venue.attributes.outlets.value];
+            if (tier != null && tier < _amountTiers[_minOutlets!.name]!) {
+              return false;
+            }
+          }
+          if (_venueType != null && venue.venueType != _venueType!.name) {
             return false;
           }
-          if (_filters.contains(DiscoveryFilter.outlets) &&
-              venue.attributes.outlets.value == 'scarce') {
-            return false;
-          }
-          final typeFilters = <String>{
-            if (_filters.contains(DiscoveryFilter.cafe)) 'cafe',
-            if (_filters.contains(DiscoveryFilter.library)) 'library',
-            if (_filters.contains(DiscoveryFilter.park)) 'park',
-          };
-          return typeFilters.isEmpty || typeFilters.contains(venue.venueType);
+          return true;
         })
         .toList(growable: false);
   }
@@ -94,8 +129,31 @@ class DiscoveryViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleFilter(DiscoveryFilter filter) {
-    if (!_filters.add(filter)) _filters.remove(filter);
+  void setLaptopFriendly(bool value) {
+    _laptopFriendly = value;
+    notifyListeners();
+  }
+
+  void setMinWifi(WifiLevel? value) {
+    _minWifi = value;
+    notifyListeners();
+  }
+
+  void setMinOutlets(OutletsLevel? value) {
+    _minOutlets = value;
+    notifyListeners();
+  }
+
+  void setVenueType(WorkVenueType? value) {
+    _venueType = value;
+    notifyListeners();
+  }
+
+  void resetFilters() {
+    _laptopFriendly = false;
+    _minWifi = null;
+    _minOutlets = null;
+    _venueType = null;
     notifyListeners();
   }
 }

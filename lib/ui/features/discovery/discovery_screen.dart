@@ -10,6 +10,7 @@ import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
 import 'discovery_view_model.dart';
+import 'work_fit_filter_menu.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({
@@ -96,7 +97,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   ),
                 ],
               ),
-              SafeArea(child: _searchAndFilters(context, venues.length)),
+              SafeArea(
+                child: _searchAndFilters(
+                  context,
+                  venues.length,
+                  _model.totalVenues,
+                ),
+              ),
               if (_model.error != null)
                 Center(
                   child: _ErrorCard(
@@ -126,7 +133,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  Widget _searchAndFilters(BuildContext context, int count) {
+  Widget _searchAndFilters(
+    BuildContext context,
+    int visibleCount,
+    int totalCount,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -139,59 +150,27 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             child: TextField(
               onChanged: _model.setQuery,
               textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Search work spots',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: CircleAvatar(
-                    backgroundColor: AppColors.green,
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
+                prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
           ),
         ),
-        SizedBox(
-          height: 42,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            scrollDirection: Axis.horizontal,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 10, 4),
+          child: Row(
             children: [
-              _filterChip(
-                'Laptop friendly',
-                Icons.laptop_mac_rounded,
-                DiscoveryFilter.laptopFriendly,
+              Expanded(
+                child: Text(
+                  '$visibleCount of $totalCount spots',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-              _filterChip(
-                'Fast Wi-Fi',
-                Icons.wifi_rounded,
-                DiscoveryFilter.fastWifi,
-              ),
-              _filterChip(
-                'Outlets',
-                Icons.power_rounded,
-                DiscoveryFilter.outlets,
-              ),
-              _filterChip(
-                'Cafes',
-                Icons.local_cafe_outlined,
-                DiscoveryFilter.cafe,
-              ),
-              _filterChip(
-                'Libraries',
-                Icons.local_library_outlined,
-                DiscoveryFilter.library,
-              ),
-              _filterChip('Parks', Icons.park_outlined, DiscoveryFilter.park),
+              WorkFitFilterButton(model: _model),
             ],
           ),
         ),
@@ -213,20 +192,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             ),
           ),
       ],
-    );
-  }
-
-  Widget _filterChip(String label, IconData icon, DiscoveryFilter filter) {
-    final selected = _model.filters.contains(filter);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: FilterChip(
-        selected: selected,
-        onSelected: (_) => _model.toggleFilter(filter),
-        avatar: Icon(icon, size: 17),
-        label: Text(label),
-        showCheckmark: false,
-      ),
     );
   }
 
