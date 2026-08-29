@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
 import '../../../data/services/location_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../discovery/discovery_screen.dart';
 import '../profile/profile_screen.dart';
 import '../saved/saved_screen.dart';
@@ -28,6 +29,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screens = [
       DiscoveryScreen(
         venueRepository: widget.venueRepository,
@@ -46,21 +48,21 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore_rounded),
-            label: 'Spots',
+            icon: const Icon(Icons.explore_outlined),
+            selectedIcon: const Icon(Icons.explore_rounded),
+            label: l10n.navSpots,
           ),
           NavigationDestination(
-            icon: Icon(Icons.bookmark_border_rounded),
-            selectedIcon: Icon(Icons.bookmark_rounded),
-            label: 'Saved',
+            icon: const Icon(Icons.bookmark_border_rounded),
+            selectedIcon: const Icon(Icons.bookmark_rounded),
+            label: l10n.navSaved,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'You',
+            icon: const Icon(Icons.person_outline_rounded),
+            selectedIcon: const Icon(Icons.person_rounded),
+            label: l10n.navYou,
           ),
         ],
       ),

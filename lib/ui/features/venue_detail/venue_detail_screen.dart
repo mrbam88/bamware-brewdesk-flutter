@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
 import '../../../domain/models/venue.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../core/venue_widgets.dart';
 import 'venue_detail_view_model.dart';
 
@@ -76,6 +77,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
       listenable: _model,
       builder: (context, _) {
         final theme = Theme.of(context);
+        final l10n = AppLocalizations.of(context)!;
         return Scaffold(
           appBar: AppBar(title: Text(_venue.name)),
           body: ListView(
@@ -193,30 +195,30 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ],
               const SizedBox(height: 18),
               _SectionCard(
-                title: 'Workability',
+                title: l10n.venueDetailWorkabilityTitle,
                 icon: Icons.verified_outlined,
                 subtitle: _cardStamp.provenanceLine,
                 children: [
                   _ClaimRow(
-                    label: 'Wi-Fi',
+                    label: l10n.filtersWifiTitle,
                     icon: Icons.wifi_rounded,
                     claim: _venue.attributes.wifi,
                     cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
-                    label: 'Outlets',
+                    label: l10n.filtersOutletsTitle,
                     icon: Icons.power_rounded,
                     claim: _venue.attributes.outlets,
                     cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
-                    label: 'Laptop policy',
+                    label: l10n.venueDetailClaimLaptopPolicy,
                     icon: Icons.laptop_mac_rounded,
                     claim: _venue.attributes.laptopPolicy,
                     cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
-                    label: 'Noise',
+                    label: l10n.venueDetailClaimNoise,
                     icon: Icons.volume_down_outlined,
                     claim: _venue.attributes.noise,
                     cardStamp: _cardStamp,
@@ -227,7 +229,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   // show.
                   if (_venue.attributes.seating.value != 'unknown')
                     _ClaimRow(
-                      label: 'Seating',
+                      label: l10n.venueDetailClaimSeating,
                       icon: Icons.chair_alt_outlined,
                       claim: _venue.attributes.seating,
                       cardStamp: _cardStamp,
@@ -236,17 +238,20 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ),
               const SizedBox(height: 14),
               _SectionCard(
-                title: 'What we know',
+                title: l10n.venueDetailWhatWeKnowTitle,
                 icon: Icons.manage_search_rounded,
                 children: [
                   Text(
                     _venue.tier == 'osm-baseline'
-                        ? 'This is a real OpenStreetMap listing. Workability details have not been deeply researched yet.'
-                        : 'This spot combines public-source research with transparent claim-level provenance.',
+                        ? l10n.venueDetailOsmDescription
+                        : l10n.venueDetailResearchedDescription,
                   ),
                   if (_venue.lastVerified case final date?) ...[
                     const SizedBox(height: 8),
-                    Text('Updated $date', style: theme.textTheme.labelMedium),
+                    Text(
+                      l10n.venueDetailUpdated(date),
+                      style: theme.textTheme.labelMedium,
+                    ),
                   ],
                   if (_venue.hoursRaw case final hours?) ...[
                     const Divider(height: 24),
@@ -306,14 +311,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     child: FilledButton.icon(
                       onPressed: _openDirections,
                       icon: const Icon(Icons.directions_walk_rounded),
-                      label: const Text('Directions'),
+                      label: Text(l10n.venueDetailDirections),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton.filledTonal(
                     tooltip: widget.savedVenues.contains(_venue.id)
-                        ? 'Remove from saved'
-                        : 'Save spot',
+                        ? l10n.venueDetailRemoveFromSaved
+                        : l10n.venueDetailSaveSpot,
                     onPressed: () => widget.savedVenues.toggle(_venue.id),
                     icon: Icon(
                       widget.savedVenues.contains(_venue.id)
@@ -323,7 +328,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   ),
                   const SizedBox(width: 6),
                   IconButton.filledTonal(
-                    tooltip: 'Share',
+                    tooltip: l10n.venueDetailShare,
                     onPressed: _shareVenue,
                     icon: const Icon(Icons.ios_share_rounded),
                   ),

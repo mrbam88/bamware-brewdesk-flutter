@@ -8,6 +8,7 @@ import '../../../data/services/connectivity_service.dart';
 import '../../../data/services/location_service.dart';
 import '../../../domain/models/venue.dart';
 import '../../../domain/use_cases/map_marker_planner.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
@@ -63,6 +64,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListenableBuilder(
       listenable: _model,
       builder: (context, _) {
@@ -107,11 +109,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               SafeArea(
                 child: _searchAndFilters(
                   context,
+                  l10n,
                   venues.length,
                   _model.totalVenues,
                 ),
               ),
-              if (_model.error != null)
+              if (_model.errorKind != null)
                 Center(
                   child: _ErrorCard(
                     key: Key(
@@ -119,7 +122,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                           ? 'discovery-state-offline'
                           : 'discovery-state-engine-error',
                     ),
-                    message: _model.error!,
+                    message:
+                        _model.error ??
+                        (_model.errorKind == DiscoveryErrorKind.offline
+                            ? l10n.discoveryErrorOffline
+                            : l10n.discoveryErrorGeneric),
                     kind: _model.errorKind ?? DiscoveryErrorKind.engine,
                     onRetry: _model.load,
                   ),
@@ -130,13 +137,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   child: CircularProgressIndicator(),
                 )
               else
-                _venueShelf(venues),
+                _venueShelf(l10n, venues),
             ],
           ),
           floatingActionButton: Padding(
             padding: const EdgeInsets.only(bottom: 116),
             child: FloatingActionButton.small(
-              tooltip: 'Use my location',
+              tooltip: l10n.discoveryUseMyLocationTooltip,
               onPressed: () async {
                 await _model.load();
                 _mapController.move(_model.center, 13.5);
@@ -151,6 +158,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   Widget _searchAndFilters(
     BuildContext context,
+    AppLocalizations l10n,
     int visibleCount,
     int totalCount,
   ) {
@@ -166,9 +174,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             child: TextField(
               onChanged: _model.setQuery,
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                hintText: 'Search work spots',
-                prefixIcon: Icon(Icons.search_rounded),
+              decoration: InputDecoration(
+                hintText: l10n.discoverySearchHint,
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -179,7 +187,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '$visibleCount of $totalCount spots',
+                  l10n.discoveryVisibleOfTotal(visibleCount, totalCount),
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -198,9 +206,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               color: AppColors.sand,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text(
-              'OSM baseline · details are still being researched',
-              style: TextStyle(
+            child: Text(
+              l10n.discoveryBaselineBanner,
+              style: const TextStyle(
                 color: AppColors.ink,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -211,7 +219,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  Widget _venueShelf(List<Venue> venues) {
+  Widget _venueShelf(AppLocalizations l10n, List<Venue> venues) {
     return DraggableScrollableSheet(
       initialChildSize: 0.22,
       minChildSize: 0.14,
@@ -231,14 +239,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   controller: controller,
                   children: [
                     const SizedBox(height: 12),
-                    const _ShelfHandle(),
+                    _ShelfHandle(l10n: l10n),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'No spots in this view.',
+                          Text(
+                            l10n.discoveryEmptyView,
                             textAlign: TextAlign.center,
                           ),
                           if (_model.activeFilterCount > 0) ...[
@@ -246,7 +254,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                             OutlinedButton(
                               key: const Key('discovery-clear-filters'),
                               onPressed: _model.resetFilters,
-                              child: const Text('Clear filters'),
+                              child: Text(l10n.discoveryClearFilters),
                             ),
                           ],
                         ],
@@ -258,7 +266,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   controller: controller,
                   itemCount: venues.length + 1,
                   itemBuilder: (context, index) {
-                    if (index == 0) return const _ShelfHandle();
+                    if (index == 0) return _ShelfHandle(l10n: l10n);
                     final venue = venues[index - 1];
                     return VenueCard(
                       venue: venue,
@@ -310,7 +318,7 @@ class _MapPin extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            '${venue.workScore}',
+            venue.workScore.toString(),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
@@ -323,7 +331,9 @@ class _MapPin extends StatelessWidget {
 }
 
 class _ShelfHandle extends StatelessWidget {
-  const _ShelfHandle();
+  const _ShelfHandle({required this.l10n});
+
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +350,7 @@ class _ShelfHandle extends StatelessWidget {
         ),
         const SizedBox(height: 7),
         Text(
-          'Best nearby',
+          l10n.discoveryBestNearby,
           style: Theme.of(context).textTheme.titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
@@ -362,6 +372,7 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.all(28),
       child: Padding(
@@ -378,7 +389,10 @@ class _ErrorCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
-            FilledButton(onPressed: onRetry, child: const Text('Try again')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(l10n.discoveryTryAgain),
+            ),
           ],
         ),
       ),

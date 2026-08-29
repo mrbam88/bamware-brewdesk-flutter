@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import 'takeout_import_view_model.dart';
 
@@ -14,6 +15,7 @@ class TakeoutImportSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final matched = model.matched;
     final unmatched = model.unmatched;
     return SafeArea(
@@ -24,14 +26,14 @@ class TakeoutImportSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${matched.length} matched · ${unmatched.length} not in BrewDesk yet',
+              l10n.takeoutResultSummary(matched.length, unmatched.length),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Matched spots are saved to BrewDesk when you confirm.',
+              l10n.takeoutConfirmHint,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -71,7 +73,7 @@ class TakeoutImportSheet extends StatelessWidget {
             if (unmatched.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Not in BrewDesk yet',
+                l10n.takeoutNotInBrewDeskYet,
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -108,7 +110,7 @@ class TakeoutImportSheet extends StatelessWidget {
                       model.reset();
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Cancel'),
+                    child: Text(l10n.cancel),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -121,7 +123,7 @@ class TakeoutImportSheet extends StatelessWidget {
                             await model.confirm();
                             if (context.mounted) Navigator.of(context).pop();
                           },
-                    child: const Text('Confirm'),
+                    child: Text(l10n.confirm),
                   ),
                 ),
               ],

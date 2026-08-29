@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/venue_widgets.dart';
 
 /// "How Work Fit works" — the transparency screen the 4.3(b) differentiator
@@ -11,62 +12,41 @@ class MethodologyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('How Work Fit works')),
+      appBar: AppBar(title: Text(l10n.methodologyTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
+        children: [
           _Section(
             icon: Icons.assignment_outlined,
-            title: 'What we measure',
-            body:
-                'Five attributes per spot: laptop policy, seating, Wi-Fi, '
-                'outlets, and noise — plus outdoor seating as a bonus. Every '
-                'claim comes from AI web research, curated data, or a site '
-                'visit.',
+            title: l10n.methodologyWhatTitle,
+            body: l10n.methodologyWhatBody,
           ),
           _Section(
             icon: Icons.balance_rounded,
-            title: 'How the score is weighted',
-            body:
-                'Laptop policy dominates (35%), then seating (25%), Wi-Fi '
-                '(15%), outlets (15%), noise (10%); outdoor seating adds up '
-                'to +5. The fastest Wi-Fi in the world is worthless where '
-                'laptops are banned. Above roughly 25 Mbps, extra speed '
-                'stops mattering — only genuinely slow Wi-Fi punishes hard.',
+            title: l10n.methodologyWeightsTitle,
+            body: l10n.methodologyWeightsBody,
           ),
           _Section(
             icon: Icons.verified_outlined,
-            title: 'Why every claim shows its source',
-            body:
-                'A claim moves the score in proportion to how much we '
-                'believe it; the rest is anchored to a neutral prior. An '
-                'unverified guess barely moves a ranking. That is why every '
-                'claim shows its source, confidence, and date — and the '
-                'seal appears only when a human stands behind it.',
+            title: l10n.methodologyProvenanceTitle,
+            body: l10n.methodologyProvenanceBody,
           ),
           _Section(
             icon: Icons.history_rounded,
-            title: 'Fresh beats stale',
-            body:
-                'Confidence halves every 90 days. A six-month-old '
-                'observation is a quarter as persuasive as a fresh one — '
-                'that is what keeps the dataset from quietly rotting into '
-                'confident fiction.',
+            title: l10n.methodologyDecayTitle,
+            body: l10n.methodologyDecayBody,
           ),
           _Section(
             icon: Icons.help_outline_rounded,
-            title: 'Honest unknowns',
-            body:
-                '"Unknown" is a first-class value: we never guess. Multiple '
-                'observations of one attribute combine by their median, and '
-                'corroboration raises confidence — capped at 95%. We never '
-                'claim certainty.',
+            title: l10n.methodologyUnknownsTitle,
+            body: l10n.methodologyUnknownsBody,
           ),
-          SizedBox(height: 8),
-          _TierLegend(),
-          SizedBox(height: 8),
-          _DataOrigins(),
+          const SizedBox(height: 8),
+          const _TierLegend(),
+          const SizedBox(height: 8),
+          const _DataOrigins(),
         ],
       ),
     );
@@ -115,9 +95,12 @@ class _Section extends StatelessWidget {
 }
 
 class _ScoreTier {
-  const _ScoreTier(this.label, this.range, this.sampleScore);
+  const _ScoreTier(this.labelKey, this.range, this.sampleScore);
 
-  final String label;
+  /// Selects the tier's localized label out of [AppLocalizations] at build
+  /// time — kept as a key rather than a resolved string since this list is
+  /// a top-level const built once, before any BuildContext exists.
+  final String Function(AppLocalizations l10n) labelKey;
   final String range;
   final int sampleScore;
 }
@@ -126,11 +109,16 @@ class _ScoreTier {
 // `_ScoreTierLegend` (work_fit_filter_menu.dart) — kept in sync by eye,
 // both read from `scoreColor` in venue_widgets.dart.
 const _scoreTiers = [
-  _ScoreTier('great', '75+', 80),
-  _ScoreTier('good', '60–74', 65),
-  _ScoreTier('mixed', '45–59', 50),
-  _ScoreTier('weak', '0–44', 20),
+  _ScoreTier(_greatLabel, '75+', 80),
+  _ScoreTier(_goodLabel, '60–74', 65),
+  _ScoreTier(_mixedLabel, '45–59', 50),
+  _ScoreTier(_weakLabel, '0–44', 20),
 ];
+
+String _greatLabel(AppLocalizations l10n) => l10n.tierGreat;
+String _goodLabel(AppLocalizations l10n) => l10n.tierGood;
+String _mixedLabel(AppLocalizations l10n) => l10n.tierMixed;
+String _weakLabel(AppLocalizations l10n) => l10n.tierWeak;
 
 class _TierLegend extends StatelessWidget {
   const _TierLegend();
@@ -138,6 +126,7 @@ class _TierLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -146,13 +135,13 @@ class _TierLegend extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'What the numbers mean',
+              l10n.whatNumbersMean,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 12),
-            for (final tier in _scoreTiers) _TierRow(tier: tier),
+            for (final tier in _scoreTiers) _TierRow(tier: tier, l10n: l10n),
           ],
         ),
       ),
@@ -161,9 +150,10 @@ class _TierLegend extends StatelessWidget {
 }
 
 class _TierRow extends StatelessWidget {
-  const _TierRow({required this.tier});
+  const _TierRow({required this.tier, required this.l10n});
 
   final _ScoreTier tier;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +170,10 @@ class _TierRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Text(tier.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            tier.labelKey(l10n),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const Spacer(),
           Text(tier.range, style: Theme.of(context).textTheme.bodySmall),
         ],
@@ -195,6 +188,7 @@ class _DataOrigins extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -202,25 +196,23 @@ class _DataOrigins extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Where the data comes from',
+              l10n.methodologyDataOriginsTitle,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
-            const _OriginRow(
-              label: 'Curated',
-              body: 'Entered or checked by a human.',
+            _OriginRow(
+              label: l10n.methodologyOriginCuratedLabel,
+              body: l10n.methodologyOriginCuratedBody,
             ),
-            const _OriginRow(
-              label: 'OSM baseline',
-              body:
-                  'A real OpenStreetMap listing with intentionally shallow '
-                  'workability data, not yet deeply researched.',
+            _OriginRow(
+              label: l10n.methodologyOriginOsmLabel,
+              body: l10n.methodologyOriginOsmBody,
             ),
-            const _OriginRow(
-              label: 'Agent researched',
-              body: 'Found by AI web research and labeled as an estimate.',
+            _OriginRow(
+              label: l10n.methodologyOriginAgentLabel,
+              body: l10n.methodologyOriginAgentBody,
             ),
           ],
         ),

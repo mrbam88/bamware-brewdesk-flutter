@@ -1,4 +1,5 @@
 import 'package:brewdesk/data/services/location_service.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/onboarding/onboarding_gate.dart';
 import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: OnboardingGate(
           locationService: const _DeniedLocationService(),
           builder: (context, _) => const Scaffold(body: Text('Spots')),
@@ -55,6 +58,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: OnboardingGate(
           locationService: const _DeniedLocationService(),
           builder: (context, _) => const Scaffold(body: Text('Spots')),
@@ -75,6 +80,8 @@ void main() {
       LocationService? resolved;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: OnboardingGate(
             locationService: const _ThrowingLocationService(),
             builder: (context, resolvedLocationService) {
@@ -111,6 +118,8 @@ void main() {
     LocationService? captured;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: OnboardingGate(
           locationService: deviceService,
           builder: (context, resolvedLocationService) {

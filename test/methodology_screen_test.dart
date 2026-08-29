@@ -1,3 +1,4 @@
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/methodology/methodology_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +15,13 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(const MaterialApp(home: MethodologyScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const MethodologyScreen(),
+        ),
+      );
 
       expect(find.text('How Work Fit works'), findsOneWidget);
 

@@ -1,3 +1,4 @@
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/methodology/methodology_screen.dart';
 import 'package:brewdesk/ui/features/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,13 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const ProfileScreen(),
+      ),
+    );
   }
 
   testWidgets('How scoring works row navigates to the methodology screen', (

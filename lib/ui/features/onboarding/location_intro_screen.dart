@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 
 /// Explains why BrewDesk asks for location before ever showing the OS
@@ -16,6 +17,7 @@ class LocationIntroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -39,7 +41,7 @@ class LocationIntroScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
                 Text(
-                  'Start where you are.',
+                  l10n.locationIntroTitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontFamily: 'serif',
@@ -48,8 +50,7 @@ class LocationIntroScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Your location finds spots nearby. It is never included '
-                  'in a public report.',
+                  l10n.locationIntroBody,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -58,9 +59,9 @@ class LocationIntroScreen extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () => onComplete(true),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('Use my location'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(l10n.useMyLocation),
                     ),
                   ),
                 ),
@@ -70,7 +71,7 @@ class LocationIntroScreen extends StatelessWidget {
                   height: 44,
                   child: TextButton(
                     onPressed: () => onComplete(false),
-                    child: const Text('Use Union Square instead'),
+                    child: Text(l10n.useUnionSquareInstead),
                   ),
                 ),
               ],

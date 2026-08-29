@@ -8,6 +8,7 @@ import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
 import 'package:brewdesk/data/repositories/venue_repository.dart';
 import 'package:brewdesk/data/services/saved_venues_service.dart';
 import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/saved/saved_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,6 +63,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: SavedScreen(
             venueRepository: repository,
             savedVenues: savedVenues,

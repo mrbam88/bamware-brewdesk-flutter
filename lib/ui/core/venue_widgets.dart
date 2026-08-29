@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/venue.dart';
+import '../../l10n/app_localizations.dart';
 import 'app_theme.dart';
 
 Color scoreColor(int score) {
@@ -28,7 +29,7 @@ class ScoreBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        '$score',
+        score.toString(),
         style: TextStyle(
           color: Colors.white,
           fontSize: compact ? 13 : 16,
@@ -57,6 +58,7 @@ class VenueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 5, 12, 5),
       child: InkWell(
@@ -93,7 +95,7 @@ class VenueCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${venue.typeLabel} · ${venue.distanceLabel}',
+                      l10n.dotJoin(venue.typeLabel, venue.distanceLabel),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -102,7 +104,18 @@ class VenueCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${_claim(venue.attributes.wifi, 'Wi-Fi')} · ${_claim(venue.attributes.seating, 'seating')}',
+                      l10n.dotJoin(
+                        _claim(
+                          l10n,
+                          venue.attributes.wifi,
+                          l10n.filtersWifiTitle,
+                        ),
+                        _claim(
+                          l10n,
+                          venue.attributes.seating,
+                          l10n.venueCardSeatingLabel,
+                        ),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall,
@@ -113,7 +126,9 @@ class VenueCard extends StatelessWidget {
               const SizedBox(width: 8),
               ScoreBadge(score: venue.workScore, compact: true),
               IconButton(
-                tooltip: saved ? 'Remove from saved' : 'Save spot',
+                tooltip: saved
+                    ? l10n.venueDetailRemoveFromSaved
+                    : l10n.venueDetailSaveSpot,
                 onPressed: onSave,
                 icon: Icon(
                   saved
@@ -128,8 +143,10 @@ class VenueCard extends StatelessWidget {
     );
   }
 
-  static String _claim(Claim claim, String label) =>
-      claim.value == 'unknown' ? '$label unknown' : claim.displayValue;
+  static String _claim(AppLocalizations l10n, Claim claim, String label) =>
+      claim.value == 'unknown'
+      ? l10n.venueCardClaimUnknown(label)
+      : claim.displayValue;
 
   static IconData _typeIcon(String type) => switch (type) {
     'park' => Icons.park_outlined,
