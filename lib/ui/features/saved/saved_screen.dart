@@ -102,9 +102,10 @@ class _SavedScreenState extends State<SavedScreen> {
             ),
           ],
         ),
-        body: _model.loading && _model.venues.isEmpty
+        body:
+            _model.loading && _model.venues.isEmpty && _model.failedIds.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : _model.venues.isEmpty
+            : _model.venues.isEmpty && _model.failedIds.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(28),
@@ -137,26 +138,64 @@ class _SavedScreenState extends State<SavedScreen> {
                 onRefresh: _model.load,
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: _model.venues.length,
+                  itemCount: _model.venues.length + _model.failedIds.length,
                   itemBuilder: (context, index) {
-                    final venue = _model.venues[index];
-                    return VenueCard(
-                      venue: venue,
-                      saved: true,
-                      onSave: () => widget.savedVenues.toggle(venue.id),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => VenueDetailScreen(
-                            initialVenue: venue,
-                            venueRepository: widget.venueRepository,
-                            savedVenues: widget.savedVenues,
+                    if (index < _model.venues.length) {
+                      final venue = _model.venues[index];
+                      return VenueCard(
+                        venue: venue,
+                        saved: true,
+                        onSave: () => widget.savedVenues.toggle(venue.id),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => VenueDetailScreen(
+                              initialVenue: venue,
+                              venueRepository: widget.venueRepository,
+                              savedVenues: widget.savedVenues,
+                            ),
                           ),
                         ),
-                      ),
+                      );
+                    }
+                    final failedId =
+                        _model.failedIds[index - _model.venues.length];
+                    return _FailedSavedRow(
+                      key: Key('saved-failed-$failedId'),
+                      onRemove: () => widget.savedVenues.toggle(failedId),
                     );
                   },
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// One row for a saved venue id that failed to hydrate (brewdesk#11): the
+/// rest of the saved list still renders around it, so a missing engine
+/// record never hides the spots that did load.
+class _FailedSavedRow extends StatelessWidget {
+  const _FailedSavedRow({super.key, required this.onRemove});
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 5, 12, 5),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: Text("Couldn't load this saved spot.")),
+            TextButton(onPressed: onRemove, child: const Text('Remove')),
+          ],
+        ),
       ),
     );
   }

@@ -36,6 +36,24 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   Venue get _venue => _model.venue;
   List<VenuePhoto> get _photos => _model.photos;
 
+  /// URLs that failed to load (brewdesk#11) — tracked by URL, not index, so
+  /// a stray stale entry from a prior load never mismatches. When every
+  /// photo has failed, the whole strip collapses instead of sitting on
+  /// screen as blank space or broken tiles.
+  final Set<String> _failedPhotoUrls = {};
+
+  bool get _photoStripVisible =>
+      _photos.isNotEmpty &&
+      _photos.any((photo) => !_failedPhotoUrls.contains(photo.url));
+
+  void _markPhotoFailed(String url) {
+    if (_failedPhotoUrls.add(url) && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -116,9 +134,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   ],
                 ),
               ),
-              if (_photos.isNotEmpty) ...[
+              if (_photoStripVisible) ...[
                 const SizedBox(height: 18),
                 SizedBox(
+                  key: const Key('venue-photo-strip'),
                   height: 180,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
@@ -126,6 +145,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, index) {
                       final photo = _photos[index];
+                      if (_failedPhotoUrls.contains(photo.url)) {
+                        return const SizedBox.shrink();
+                      }
                       return ClipRRect(
                         borderRadius: BorderRadius.circular(18),
                         child: Stack(
@@ -135,8 +157,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               width: 260,
                               height: 180,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const SizedBox.shrink(),
+                              errorBuilder: (_, _, _) {
+                                _markPhotoFailed(photo.url);
+                                return const SizedBox.shrink();
+                              },
                             ),
                             if (photo.attribution case final attribution?)
                               Positioned(

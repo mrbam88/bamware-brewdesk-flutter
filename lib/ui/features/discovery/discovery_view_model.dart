@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../data/repositories/venue_repository.dart';
+import '../../../data/services/connectivity_service.dart';
 import '../../../data/services/location_service.dart';
+import '../../../data/services/venue_api.dart';
 import '../../../domain/models/venue.dart';
 
 /// Wi-Fi floor for the tri-state Wi-Fi filter. `ok` and `fast` mirror the
@@ -22,16 +26,28 @@ enum WorkVenueType { cafe, library, park }
 const Map<String, int> _wifiTiers = {'slow': 1, 'ok': 2, 'fast': 3};
 const Map<String, int> _amountTiers = {'scarce': 1, 'some': 2, 'plenty': 3};
 
+/// Which intentional degraded card [DiscoveryViewModel.error] describes
+/// (brewdesk#11) — "the engine is down" reads and recovers differently from
+/// "you're offline".
+enum DiscoveryErrorKind { engine, offline }
+
 class DiscoveryViewModel extends ChangeNotifier {
-  DiscoveryViewModel(this._repository, this._locationService);
+  DiscoveryViewModel(
+    this._repository,
+    this._locationService, {
+    this._connectivity = const ConnectivityService(),
+  });
 
   static const manhattan = LatLng(40.7411, -73.9897);
   final VenueRepository _repository;
   final LocationService _locationService;
+  final ConnectivityService _connectivity;
+  StreamSubscription<bool>? _connectivitySub;
 
   List<Venue> _venues = const [];
   bool _loading = false;
   String? _error;
+  DiscoveryErrorKind? _errorKind;
   String _query = '';
   CoverageLevel _coverage = CoverageLevel.researched;
   LatLng _center = manhattan;
@@ -43,6 +59,7 @@ class DiscoveryViewModel extends ChangeNotifier {
 
   bool get loading => _loading;
   String? get error => _error;
+  DiscoveryErrorKind? get errorKind => _errorKind;
   String get query => _query;
   CoverageLevel get coverage => _coverage;
   LatLng get center => _center;
@@ -104,6 +121,7 @@ class DiscoveryViewModel extends ChangeNotifier {
   Future<void> load({bool useDeviceLocation = true}) async {
     _loading = true;
     _error = null;
+    _errorKind = null;
     notifyListeners();
 
     if (useDeviceLocation) {
@@ -116,12 +134,39 @@ class DiscoveryViewModel extends ChangeNotifier {
       );
       _venues = result.venues;
       _coverage = result.coverage;
-    } on Object {
-      _error = 'We could not reach the spot service. Check your connection and try again.';
+      _stopWatchingForReconnect();
+    } on VenueOfflineException {
+      _errorKind = DiscoveryErrorKind.offline;
+      _error = "You're offline. We'll try again once you're back online.";
+      _watchForReconnect();
+    } on Object catch (error) {
+      _errorKind = DiscoveryErrorKind.engine;
+      _error = error is VenueApiException ? error.message : 'We could not reach the spot service. Check your connection and try again.';
     } finally {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  /// Subscribes to connectivity once, only after an offline failure — most
+  /// loads succeed and should never touch the platform channel. Retries the
+  /// same search automatically the moment the device comes back online, no
+  /// user action required (brewdesk#11).
+  void _watchForReconnect() {
+    _connectivitySub ??= _connectivity.onlineChanges
+        .where((online) => online)
+        .listen((_) => load(useDeviceLocation: false));
+  }
+
+  void _stopWatchingForReconnect() {
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+  }
+
+  @override
+  void dispose() {
+    _stopWatchingForReconnect();
+    super.dispose();
   }
 
   void setQuery(String value) {
