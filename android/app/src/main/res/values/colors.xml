@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Warm Utilitarian brand tokens (see lib/ui/core/app_theme.dart). -->
+<resources>
+    <color name="brewdesk_green">#2D5A4C</color>
+    <color name="brewdesk_cream">#FAF9F6</color>
+    <color name="brewdesk_charcoal">#15201C</color>
+</resources>
