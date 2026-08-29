@@ -5,6 +5,8 @@ import '../../../data/repositories/venue_repository.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
 import 'saved_view_model.dart';
+import 'takeout_import_sheet.dart';
+import 'takeout_import_view_model.dart';
 
 class SavedScreen extends StatefulWidget {
   const SavedScreen({
@@ -12,11 +14,16 @@ class SavedScreen extends StatefulWidget {
     required this.venueRepository,
     required this.savedVenues,
     required this.onBrowse,
+    @visibleForTesting this.importModel,
   });
 
   final VenueRepository venueRepository;
   final SavedVenuesRepository savedVenues;
   final VoidCallback onBrowse;
+
+  /// Test-only seam: lets a widget test inject a [TakeoutImportViewModel]
+  /// with a fake file picker and venue loader instead of the real ones.
+  final TakeoutImportViewModel? importModel;
 
   @override
   State<SavedScreen> createState() => _SavedScreenState();
@@ -27,17 +34,43 @@ class _SavedScreenState extends State<SavedScreen> {
     widget.venueRepository,
     widget.savedVenues,
   );
+  late final bool _ownsImportModel = widget.importModel == null;
+  late final TakeoutImportViewModel _importModel =
+      widget.importModel ??
+      TakeoutImportViewModel(savedVenues: widget.savedVenues);
 
   @override
   void initState() {
     super.initState();
     _model.load();
+    _importModel.addListener(_handleImportPhaseChange);
   }
 
   @override
   void dispose() {
+    _importModel.removeListener(_handleImportPhaseChange);
+    if (_ownsImportModel) _importModel.dispose();
     _model.dispose();
     super.dispose();
+  }
+
+  void _handleImportPhaseChange() {
+    switch (_importModel.phase) {
+      case TakeoutImportPhase.done:
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => TakeoutImportSheet(model: _importModel),
+        );
+      case TakeoutImportPhase.fileFailed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("That file couldn't be read.")),
+        );
+        _importModel.reset();
+      case TakeoutImportPhase.idle:
+      case TakeoutImportPhase.working:
+        break;
+    }
   }
 
   @override
@@ -45,7 +78,30 @@ class _SavedScreenState extends State<SavedScreen> {
     return ListenableBuilder(
       listenable: _model,
       builder: (context, _) => Scaffold(
-        appBar: AppBar(title: const Text('Saved')),
+        appBar: AppBar(
+          title: const Text('Saved'),
+          actions: [
+            ListenableBuilder(
+              listenable: _importModel,
+              builder: (context, _) {
+                final working =
+                    _importModel.phase == TakeoutImportPhase.working;
+                return IconButton(
+                  key: const Key('import-takeout'),
+                  tooltip: 'Import from Google Takeout',
+                  onPressed: working ? null : _importModel.pickAndImport,
+                  icon: working
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.file_upload_outlined),
+                );
+              },
+            ),
+          ],
+        ),
         body: _model.loading && _model.venues.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : _model.venues.isEmpty
