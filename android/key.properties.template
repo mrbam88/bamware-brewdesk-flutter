@@ -1,0 +1,24 @@
+# Template for the Play upload-key signing config.
+#
+# Copy this file to `android/key.properties` (already gitignored — see
+# android/.gitignore) and fill in the real values. NEVER commit
+# `key.properties` or the `.jks`/`.keystore` file itself; both are gitignored.
+#
+# This repo does not generate or hold the keystore. Generating it and
+# registering the Play Console app are Human-only steps — see
+# docs/play/SUBMISSION-RUNBOOK.md and ticket #5.
+#
+# Generate the upload keystore (run once, on Bilal's machine, keep the
+# output somewhere durable — losing it forfeits your Play Console app
+# identity for this bundle ID):
+#   keytool -genkey -v -keystore ~/upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias upload
+#
+# storeFile is resolved relative to android/app/, so an absolute path is
+# simplest and keeps the keystore itself out of this repo entirely.
+
+storePassword=<upload-keystore-password>
+keyPassword=<upload-key-password>
+keyAlias=upload
+storeFile=/absolute/path/to/upload-keystore.jks
