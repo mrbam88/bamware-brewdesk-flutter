@@ -1,0 +1,14 @@
+import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+
+void main() {
+  test('resolves to the fixed Union Square coordinate', () async {
+    const service = UnionSquareLocationService();
+
+    final location = await service.currentLocation();
+
+    expect(location, const LatLng(40.7359, -73.9911));
+    expect(location, UnionSquareLocationService.unionSquare);
+  });
+}
