@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-73.9900, 40.7300]
+      },
+      "properties": {
+        "location": {
+          "name": "Union Square Coffee"
+        },
+        "google_maps_url": "https://www.google.com/maps/place/?q=place_id:abc123"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-73.5000, 40.5000]
+      },
+      "properties": {
+        "location": {
+          "name": "Some Random Bakery Far Away"
+        }
+      }
+    }
+  ]
+}
