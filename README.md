@@ -49,4 +49,10 @@ flutter test
 flutter build apk --debug
 ```
 
-Visual direction: `docs/design/BrewDeskDesignSpecv1.pdf`.
+Visual direction: `docs/design/BrewDeskDesignSpecv1.pdf`. The Android launcher
+icon and launch background are generated from
+`android/app/src/icon-source/generate_launcher_icon.py` (Pillow, no pubspec
+dependency) — rerun it after any brand-color change and commit the regenerated
+`mipmap-*/ic_launcher.png` densities.
+
+Play submission prep and runbook: `docs/play/`.

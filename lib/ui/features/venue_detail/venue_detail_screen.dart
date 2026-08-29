@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/repositories/saved_venues_repository.dart';
@@ -13,11 +14,15 @@ class VenueDetailScreen extends StatefulWidget {
     required this.initialVenue,
     required this.venueRepository,
     required this.savedVenues,
+    this.shareVenue,
   });
 
   final Venue initialVenue;
   final VenueRepository venueRepository;
   final SavedVenuesRepository savedVenues;
+
+  /// Test seam for the Share action — defaults to the real share sheet.
+  final Future<void> Function(String text)? shareVenue;
 
   @override
   State<VenueDetailScreen> createState() => _VenueDetailScreenState();
@@ -54,7 +59,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
       builder: (context, _) {
         final theme = Theme.of(context);
         return Scaffold(
-          appBar: AppBar(title: const Text('Spot details')),
+          appBar: AppBar(title: Text(_venue.name)),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
             children: [
@@ -166,32 +171,43 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               _SectionCard(
                 title: 'Workability',
                 icon: Icons.verified_outlined,
+                subtitle: _cardStamp.provenanceLine,
                 children: [
                   _ClaimRow(
                     label: 'Wi-Fi',
                     icon: Icons.wifi_rounded,
                     claim: _venue.attributes.wifi,
-                  ),
-                  _ClaimRow(
-                    label: 'Seating',
-                    icon: Icons.chair_alt_outlined,
-                    claim: _venue.attributes.seating,
+                    cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
                     label: 'Outlets',
                     icon: Icons.power_rounded,
                     claim: _venue.attributes.outlets,
+                    cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
                     label: 'Laptop policy',
                     icon: Icons.laptop_mac_rounded,
                     claim: _venue.attributes.laptopPolicy,
+                    cardStamp: _cardStamp,
                   ),
                   _ClaimRow(
                     label: 'Noise',
                     icon: Icons.volume_down_outlined,
                     claim: _venue.attributes.noise,
+                    cardStamp: _cardStamp,
                   ),
+                  // Seating is a v2 claim (venue-engine schema ve#46): a
+                  // value of "unknown" means either it was never observed
+                  // or explicitly reported unknown — either way, nothing to
+                  // show.
+                  if (_venue.attributes.seating.value != 'unknown')
+                    _ClaimRow(
+                      label: 'Seating',
+                      icon: Icons.chair_alt_outlined,
+                      claim: _venue.attributes.seating,
+                      cardStamp: _cardStamp,
+                    ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -211,6 +227,39 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   if (_venue.hoursRaw case final hours?) ...[
                     const Divider(height: 24),
                     Text(hours),
+                  ],
+                  if (_venue.website case final website?) ...[
+                    const Divider(height: 24),
+                    InkWell(
+                      onTap: () => launchUrl(Uri.parse(website)),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.language_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              website,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_outward_rounded,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -250,11 +299,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   ),
                   const SizedBox(width: 6),
                   IconButton.filledTonal(
-                    tooltip: 'Open website',
-                    onPressed: _venue.website == null
-                        ? null
-                        : () => launchUrl(Uri.parse(_venue.website!)),
-                    icon: const Icon(Icons.language_rounded),
+                    tooltip: 'Share',
+                    onPressed: _shareVenue,
+                    icon: const Icon(Icons.ios_share_rounded),
                   ),
                 ],
               ),
@@ -273,6 +320,24 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     });
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
+
+  Claim get _cardStamp => _venue.attributes.workabilityCardStamp;
+
+  Future<void> _shareVenue() {
+    final share = widget.shareVenue ?? _defaultShare;
+    return share(_shareText);
+  }
+
+  String get _shareText => '${_venue.name} · $_mapsUri';
+
+  Uri get _mapsUri => Uri.https('www.google.com', '/maps/search/', {
+    'api': '1',
+    'query': '${_venue.lat},${_venue.lng}',
+  });
+
+  Future<void> _defaultShare(String text) async {
+    await SharePlus.instance.share(ShareParams(text: text));
+  }
 }
 
 class _SectionCard extends StatelessWidget {
@@ -280,10 +345,15 @@ class _SectionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.children,
+    this.subtitle,
   });
   final String title;
   final IconData icon;
   final List<Widget> children;
+
+  /// The Workability card's one-time provenance stamp (brewdesk#119) — every
+  /// other card leaves this unset.
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -304,6 +374,16 @@ class _SectionCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (subtitle case final subtitle?) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                key: const Key('workability-provenance-stamp'),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             ...children,
           ],
@@ -318,16 +398,26 @@ class _ClaimRow extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.claim,
+    required this.cardStamp,
   });
   final String label;
   final IconData icon;
   final Claim claim;
+
+  /// The Workability card's single provenance stamp (brewdesk#119). When
+  /// this claim's own source/confidence/date match it exactly, the row
+  /// stays quiet — the card already said it once. Only a disagreeing claim
+  /// prints its own provenance line.
+  final Claim cardStamp;
+
+  bool get _agreesWithCardStamp => claim.matchesProvenance(cardStamp);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             icon,
@@ -343,10 +433,13 @@ class _ClaimRow extends StatelessWidget {
                 claim.displayValue,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              Text(
-                claim.sourceLabel,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+              if (!_agreesWithCardStamp)
+                Text(
+                  claim.provenanceLine,
+                  key: const Key('claim-provenance-line'),
+                  textAlign: TextAlign.end,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
             ],
           ),
         ],
