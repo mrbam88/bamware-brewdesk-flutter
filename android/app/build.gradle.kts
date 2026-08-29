@@ -1,11 +1,29 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Upload keystore, read from android/key.properties (gitignored, never committed).
+// See android/key.properties.template and docs/play/SUBMISSION-RUNBOOK.md for how
+// Bilal generates and fills this in on his own machine (Human-only ticket #5).
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasKeystoreProperties = keystorePropertiesFile.exists()
+if (hasKeystoreProperties) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
 android {
     namespace = "io.bamware.brewdesk"
+    // Target/compile SDK 36 (Android 16) meets the Google Play requirement that new
+    // apps and app updates target API 36+ starting 2026-08-31; see
+    // https://developer.android.com/google/play/requirements/target-sdk
+    // (verified 2026-08-28). Flutter 3.47.1 stable defaults compileSdk/targetSdk to 36
+    // already (flutter.compileSdkVersion / flutter.targetSdkVersion below) so no
+    // override is needed here — bumping the Flutter SDK is how this stays current.
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,25 +33,48 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "io.bamware.brewdesk"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        // Version scheme (documented in docs/play/SUBMISSION-RUNBOOK.md):
+        // versionName (pubspec `version` before the `+`) is semantic — bump on every
+        // Play submission. versionCode (pubspec `version` after the `+`) must
+        // strictly increase on every artifact uploaded to Play, including internal
+        // testing builds; it never resets and is never reused.
+        // Both are read from pubspec.yaml via the Flutter Gradle plugin.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasKeystoreProperties) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Signs with the real upload key once android/key.properties exists
+            // (Human-only ticket #5: keystore generation and Console registration).
+            // Falls back to the debug key so `flutter build appbundle --release`
+            // keeps succeeding unsigned in this repo and in CI, per issue #15 scope.
+            signingConfig =
+                if (hasKeystoreProperties) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

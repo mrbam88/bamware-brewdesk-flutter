@@ -31,3 +31,5 @@ flutter build apk --debug
 ```
 
 Visual direction: `docs/design/BrewDeskDesignSpecv1.pdf`.
+
+Play submission prep and runbook: `docs/play/`.
