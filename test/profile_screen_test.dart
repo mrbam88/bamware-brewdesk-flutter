@@ -89,7 +89,7 @@ void main() {
       expect(
         fakeLauncher.launched,
         containsAll(<String>[
-          'mailto:bmalik.ee@gmail.com?subject=BrewDesk%20support',
+          'https://bamware.io/brewdesk/support',
           'https://bamware.io/brewdesk/privacy',
           'https://bamware.io/brewdesk/terms',
         ]),

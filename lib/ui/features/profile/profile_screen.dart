@@ -136,10 +136,8 @@ class _NavTile extends StatelessWidget {
 class _AboutSection extends StatelessWidget {
   const _AboutSection();
 
-  static final Uri _supportUri = Uri(
-    scheme: 'mailto',
-    path: 'bmalik.ee@gmail.com',
-    query: 'subject=BrewDesk support',
+  static final Uri _supportUri = Uri.parse(
+    'https://bamware.io/brewdesk/support',
   );
   static final Uri _privacyUri = Uri.parse(
     'https://bamware.io/brewdesk/privacy',
