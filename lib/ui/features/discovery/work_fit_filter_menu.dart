@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
 import 'discovery_view_model.dart';
@@ -22,6 +23,7 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CompositedTransformTarget(
       link: _link,
       child: OverlayPortal(
@@ -58,7 +60,7 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
               clipBehavior: Clip.none,
               children: [
                 IconButton(
-                  tooltip: 'Filters',
+                  tooltip: l10n.filtersTooltip,
                   onPressed: _controller.toggle,
                   icon: Icon(
                     count > 0
@@ -75,7 +77,7 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
                         radius: 8,
                         backgroundColor: AppColors.green,
                         child: Text(
-                          '$count',
+                          count.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
@@ -104,6 +106,7 @@ class WorkFitFilterMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListenableBuilder(
       listenable: model,
       builder: (context, _) {
@@ -121,45 +124,65 @@ class WorkFitFilterMenu extends StatelessWidget {
                   value: model.laptopFriendly,
                   onChanged: model.setLaptopFriendly,
                   secondary: const Icon(Icons.laptop_mac_rounded, size: 20),
-                  title: const Text(
-                    'Laptop friendly',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  title: Text(
+                    l10n.filtersLaptopFriendly,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(height: 14),
                 _DimensionRow<WifiLevel?>(
-                  title: 'Wi-Fi',
+                  title: l10n.filtersWifiTitle,
                   icon: Icons.wifi_rounded,
                   value: model.minWifi,
-                  options: const [
-                    (null, 'Any', 'filter-wifi-any'),
-                    (WifiLevel.ok, 'OK', 'filter-wifi-ok'),
-                    (WifiLevel.fast, 'Fast', 'filter-wifi-fast'),
+                  options: [
+                    (null, l10n.anyOption, 'filter-wifi-any'),
+                    (WifiLevel.ok, l10n.filtersWifiOk, 'filter-wifi-ok'),
+                    (WifiLevel.fast, l10n.filtersWifiFast, 'filter-wifi-fast'),
                   ],
                   onChanged: model.setMinWifi,
                 ),
                 const SizedBox(height: 14),
                 _DimensionRow<OutletsLevel?>(
-                  title: 'Outlets',
+                  title: l10n.filtersOutletsTitle,
                   icon: Icons.power_rounded,
                   value: model.minOutlets,
-                  options: const [
-                    (null, 'Any', 'filter-outlets-any'),
-                    (OutletsLevel.some, 'Some', 'filter-outlets-some'),
-                    (OutletsLevel.plenty, 'Plenty', 'filter-outlets-plenty'),
+                  options: [
+                    (null, l10n.anyOption, 'filter-outlets-any'),
+                    (
+                      OutletsLevel.some,
+                      l10n.filtersOutletsSome,
+                      'filter-outlets-some',
+                    ),
+                    (
+                      OutletsLevel.plenty,
+                      l10n.filtersOutletsPlenty,
+                      'filter-outlets-plenty',
+                    ),
                   ],
                   onChanged: model.setMinOutlets,
                 ),
                 const SizedBox(height: 14),
                 _DimensionRow<WorkVenueType?>(
-                  title: 'Venue type',
+                  title: l10n.filtersVenueTypeTitle,
                   icon: Icons.storefront_rounded,
                   value: model.venueType,
-                  options: const [
-                    (null, 'Any', 'filter-type-any'),
-                    (WorkVenueType.cafe, 'Cafe', 'filter-type-cafe'),
-                    (WorkVenueType.library, 'Library', 'filter-type-library'),
-                    (WorkVenueType.park, 'Park', 'filter-type-park'),
+                  options: [
+                    (null, l10n.anyOption, 'filter-type-any'),
+                    (
+                      WorkVenueType.cafe,
+                      l10n.filtersVenueTypeCafe,
+                      'filter-type-cafe',
+                    ),
+                    (
+                      WorkVenueType.library,
+                      l10n.filtersVenueTypeLibrary,
+                      'filter-type-library',
+                    ),
+                    (
+                      WorkVenueType.park,
+                      l10n.filtersVenueTypePark,
+                      'filter-type-park',
+                    ),
                   ],
                   onChanged: model.setVenueType,
                 ),
@@ -176,7 +199,7 @@ class WorkFitFilterMenu extends StatelessWidget {
                     key: const Key('filters-reset'),
                     onPressed: count == 0 ? null : model.resetFilters,
                     icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                    label: Text('Reset $count filters'),
+                    label: Text(l10n.filtersResetCount(count)),
                   ),
                 ),
               ],
@@ -294,21 +317,22 @@ class _ScoreTierLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'What the numbers mean',
+          l10n.whatNumbersMean,
           style: theme.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w700,
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),
-        const _LegendRow(score: 80, range: '75+', label: 'great'),
-        const _LegendRow(score: 65, range: '60–74', label: 'good'),
-        const _LegendRow(score: 50, range: '45–59', label: 'mixed'),
-        const _LegendRow(score: 20, range: '0–44', label: 'weak'),
+        _LegendRow(score: 80, range: '75+', label: l10n.tierGreat),
+        _LegendRow(score: 65, range: '60–74', label: l10n.tierGood),
+        _LegendRow(score: 50, range: '45–59', label: l10n.tierMixed),
+        _LegendRow(score: 20, range: '0–44', label: l10n.tierWeak),
       ],
     );
   }

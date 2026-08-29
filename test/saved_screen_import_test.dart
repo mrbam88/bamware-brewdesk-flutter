@@ -6,6 +6,7 @@ import 'package:brewdesk/data/repositories/venue_repository.dart';
 import 'package:brewdesk/data/services/saved_venues_service.dart';
 import 'package:brewdesk/data/services/venue_api.dart';
 import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/saved/saved_screen.dart';
 import 'package:brewdesk/ui/features/saved/takeout_import_view_model.dart';
 import 'package:file_selector/file_selector.dart';
@@ -78,6 +79,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: SavedScreen(
             venueRepository: venueRepository,
             savedVenues: savedVenues,
@@ -133,6 +136,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: SavedScreen(
           venueRepository: venueRepository,
           savedVenues: savedVenues,

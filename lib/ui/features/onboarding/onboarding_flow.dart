@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import 'location_intro_screen.dart';
 
@@ -18,6 +19,9 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
+/// Copy is resolved from [AppLocalizations] at build time via the selector
+/// functions below — this list is a top-level const built once, before any
+/// BuildContext exists, so it cannot hold resolved strings directly.
 class _OnboardingPageData {
   const _OnboardingPageData({
     required this.eyebrow,
@@ -26,38 +30,42 @@ class _OnboardingPageData {
     required this.icon,
   });
 
-  final String eyebrow;
-  final String title;
-  final String body;
+  final String Function(AppLocalizations l10n) eyebrow;
+  final String Function(AppLocalizations l10n) title;
+  final String Function(AppLocalizations l10n) body;
   final IconData icon;
 }
 
 const _pages = [
   _OnboardingPageData(
-    eyebrow: 'WORK, WITHOUT THE GUESSWORK',
-    title: 'Your next desk might serve espresso.',
-    body:
-        'Find nearby spots where the Wi-Fi works, outlets exist, and '
-        'opening a laptop is actually welcome.',
+    eyebrow: _page1Eyebrow,
+    title: _page1Title,
+    body: _page1Body,
     icon: Icons.local_cafe_rounded,
   ),
   _OnboardingPageData(
-    eyebrow: 'THE SIGNALS THAT MATTER',
-    title: 'Know before you order.',
-    body:
-        'Compare noise, Wi-Fi, outlets, and laptop policy instead of '
-        'digging through hundreds of reviews.',
+    eyebrow: _page2Eyebrow,
+    title: _page2Title,
+    body: _page2Body,
     icon: Icons.insights_rounded,
   ),
   _OnboardingPageData(
-    eyebrow: 'HONEST BY DESIGN',
-    title: 'Every score shows its work.',
-    body:
-        'Measured facts lead. Estimates stay labeled. Sources and '
-        'verification dates show how much to trust.',
+    eyebrow: _page3Eyebrow,
+    title: _page3Title,
+    body: _page3Body,
     icon: Icons.verified_rounded,
   ),
 ];
+
+String _page1Eyebrow(AppLocalizations l10n) => l10n.onboardingPage1Eyebrow;
+String _page1Title(AppLocalizations l10n) => l10n.onboardingPage1Title;
+String _page1Body(AppLocalizations l10n) => l10n.onboardingPage1Body;
+String _page2Eyebrow(AppLocalizations l10n) => l10n.onboardingPage2Eyebrow;
+String _page2Title(AppLocalizations l10n) => l10n.onboardingPage2Title;
+String _page2Body(AppLocalizations l10n) => l10n.onboardingPage2Body;
+String _page3Eyebrow(AppLocalizations l10n) => l10n.onboardingPage3Eyebrow;
+String _page3Title(AppLocalizations l10n) => l10n.onboardingPage3Title;
+String _page3Body(AppLocalizations l10n) => l10n.onboardingPage3Body;
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
   final PageController _pageController = PageController();
@@ -87,7 +95,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     if (_showLocationIntro) {
       return LocationIntroScreen(onComplete: widget.onComplete);
     }
+    final l10n = AppLocalizations.of(context)!;
     final isLastPage = _page == _pages.length - 1;
+    final pageIndicator = l10n.onboardingPageIndicator(
+      _page + 1,
+      _pages.length,
+    );
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -97,7 +110,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               child: Row(
                 children: [
                   Text(
-                    'BREWDESK',
+                    l10n.appNameWordmark,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       letterSpacing: 2.4,
@@ -105,7 +118,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                   ),
                   const Spacer(),
                   Text(
-                    '0${_page + 1} / 0${_pages.length}',
+                    pageIndicator,
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ],
@@ -149,7 +162,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                   onPressed: _continue,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(isLastPage ? 'Find my work spot' : 'Continue'),
+                    child: Text(
+                      isLastPage
+                          ? l10n.onboardingFindMyWorkSpot
+                          : l10n.onboardingContinue,
+                    ),
                   ),
                 ),
               ),
@@ -168,6 +185,7 @@ class _OnboardingPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
@@ -184,19 +202,19 @@ class _OnboardingPageView extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            data.eyebrow,
+            data.eyebrow(l10n),
             style: Theme.of(context).textTheme.labelSmall
                 ?.copyWith(fontWeight: FontWeight.w900, color: AppColors.green),
           ),
           const SizedBox(height: 8),
           Text(
-            data.title,
+            data.title(l10n),
             style: Theme.of(context).textTheme.headlineMedium
                 ?.copyWith(fontFamily: 'serif', fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
-            data.body,
+            data.body(l10n),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
           ),
         ],

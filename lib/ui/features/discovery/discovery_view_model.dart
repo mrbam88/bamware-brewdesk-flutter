@@ -137,11 +137,16 @@ class DiscoveryViewModel extends ChangeNotifier {
       _stopWatchingForReconnect();
     } on VenueOfflineException {
       _errorKind = DiscoveryErrorKind.offline;
-      _error = "You're offline. We'll try again once you're back online.";
+      // No literal message here: the offline fallback copy is localized by
+      // the widget from [errorKind]. See DiscoveryScreen._searchAndFilters.
+      _error = null;
       _watchForReconnect();
     } on Object catch (error) {
       _errorKind = DiscoveryErrorKind.engine;
-      _error = error is VenueApiException ? error.message : 'We could not reach the spot service. Check your connection and try again.';
+      // A VenueApiException message names the engine and comes straight
+      // from the server, so it is shown as-is; a generic failure falls
+      // back to the widget's localized copy (null here).
+      _error = error is VenueApiException ? error.message : null;
     } finally {
       _loading = false;
       notifyListeners();

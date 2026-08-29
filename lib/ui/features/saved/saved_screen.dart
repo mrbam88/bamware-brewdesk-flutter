@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
 import 'saved_view_model.dart';
@@ -64,7 +65,9 @@ class _SavedScreenState extends State<SavedScreen> {
         );
       case TakeoutImportPhase.fileFailed:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("That file couldn't be read.")),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.savedFileReadError),
+          ),
         );
         _importModel.reset();
       case TakeoutImportPhase.idle:
@@ -75,11 +78,12 @@ class _SavedScreenState extends State<SavedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListenableBuilder(
       listenable: _model,
       builder: (context, _) => Scaffold(
         appBar: AppBar(
-          title: const Text('Saved'),
+          title: Text(l10n.savedTitle),
           actions: [
             ListenableBuilder(
               listenable: _importModel,
@@ -88,7 +92,7 @@ class _SavedScreenState extends State<SavedScreen> {
                     _importModel.phase == TakeoutImportPhase.working;
                 return IconButton(
                   key: const Key('import-takeout'),
-                  tooltip: 'Import from Google Takeout',
+                  tooltip: l10n.savedImportTooltip,
                   onPressed: working ? null : _importModel.pickAndImport,
                   icon: working
                       ? const SizedBox(
@@ -115,20 +119,17 @@ class _SavedScreenState extends State<SavedScreen> {
                       const Icon(Icons.bookmark_add_outlined, size: 52),
                       const SizedBox(height: 16),
                       Text(
-                        'Save your next work spot',
+                        l10n.savedEmptyTitle,
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w900),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Bookmarks stay on this device. No account required.',
-                        textAlign: TextAlign.center,
-                      ),
+                      Text(l10n.savedEmptyBody, textAlign: TextAlign.center),
                       const SizedBox(height: 18),
                       FilledButton(
                         onPressed: widget.onBrowse,
-                        child: const Text('Browse nearby'),
+                        child: Text(l10n.savedBrowseNearby),
                       ),
                     ],
                   ),
@@ -181,6 +182,7 @@ class _FailedSavedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 5, 12, 5),
       child: Padding(
@@ -192,8 +194,8 @@ class _FailedSavedRow extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 12),
-            const Expanded(child: Text("Couldn't load this saved spot.")),
-            TextButton(onPressed: onRemove, child: const Text('Remove')),
+            Expanded(child: Text(l10n.savedFailedRowMessage)),
+            TextButton(onPressed: onRemove, child: Text(l10n.savedRemove)),
           ],
         ),
       ),

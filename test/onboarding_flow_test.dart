@@ -1,3 +1,4 @@
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/onboarding/onboarding_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +8,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: OnboardingFlow(onComplete: (_) {})),
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnboardingFlow(onComplete: (_) {}),
+      ),
     );
 
     expect(find.text('Your next desk might serve espresso.'), findsOneWidget);
@@ -36,6 +41,8 @@ void main() {
     bool? received;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: OnboardingFlow(onComplete: (value) => received = value),
       ),
     );
@@ -58,6 +65,8 @@ void main() {
       bool? received;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: OnboardingFlow(onComplete: (value) => received = value),
         ),
       );

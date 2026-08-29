@@ -14,6 +14,7 @@ import 'package:brewdesk/data/repositories/venue_repository.dart';
 import 'package:brewdesk/data/services/connectivity_service.dart';
 import 'package:brewdesk/data/services/saved_venues_service.dart';
 import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/discovery/discovery_screen.dart';
 import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,8 @@ Future<Widget> _harness({
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
   return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: DiscoveryScreen(
       venueRepository: VenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),

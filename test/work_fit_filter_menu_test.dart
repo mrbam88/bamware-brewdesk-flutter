@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:brewdesk/data/repositories/venue_repository.dart';
 import 'package:brewdesk/data/services/location_service.dart';
 import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/ui/features/discovery/discovery_view_model.dart';
 import 'package:brewdesk/ui/features/discovery/work_fit_filter_menu.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +39,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Align(
             alignment: Alignment.topRight,

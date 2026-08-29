@@ -1,0 +1,172 @@
+{
+  "@@locale": "en",
+
+  "appNameWordmark": "BREWDESK",
+  "@appNameWordmark": {"description": "All-caps brand wordmark shown on the onboarding header. Not translated per-locale."},
+
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+
+  "tierGreat": "great",
+  "tierGood": "good",
+  "tierMixed": "mixed",
+  "tierWeak": "weak",
+
+  "anyOption": "Any",
+  "dotJoin": "{a} · {b}",
+  "@dotJoin": {
+    "description": "Two short fragments joined by a middot separator.",
+    "placeholders": {
+      "a": {"type": "String"},
+      "b": {"type": "String"}
+    }
+  },
+
+  "filtersTooltip": "Filters",
+  "filtersLaptopFriendly": "Laptop friendly",
+  "filtersWifiTitle": "Wi-Fi",
+  "filtersWifiOk": "OK",
+  "filtersWifiFast": "Fast",
+  "filtersOutletsTitle": "Outlets",
+  "filtersOutletsSome": "Some",
+  "filtersOutletsPlenty": "Plenty",
+  "filtersVenueTypeTitle": "Venue type",
+  "filtersVenueTypeCafe": "Cafe",
+  "filtersVenueTypeLibrary": "Library",
+  "filtersVenueTypePark": "Park",
+  "filtersResetCount": "Reset {count} filters",
+  "@filtersResetCount": {
+    "description": "Reset button label naming how many filters are active. Always plural, even for 0 or 1 — matches existing widget-test expectations.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "whatNumbersMean": "What the numbers mean",
+
+  "discoveryUseMyLocationTooltip": "Use my location",
+  "discoverySearchHint": "Search work spots",
+  "discoveryVisibleOfTotal": "{visible} of {total} spots",
+  "@discoveryVisibleOfTotal": {
+    "placeholders": {
+      "visible": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "discoveryBaselineBanner": "OSM baseline · details are still being researched",
+  "discoveryEmptyView": "No spots in this view.",
+  "discoveryClearFilters": "Clear filters",
+  "discoveryBestNearby": "Best nearby",
+  "discoveryTryAgain": "Try again",
+  "discoveryErrorOffline": "You're offline. We'll try again once you're back online.",
+  "discoveryErrorGeneric": "We could not reach the spot service. Check your connection and try again.",
+
+  "methodologyTitle": "How Work Fit works",
+  "methodologyWhatTitle": "What we measure",
+  "methodologyWhatBody": "Five attributes per spot: laptop policy, seating, Wi-Fi, outlets, and noise — plus outdoor seating as a bonus. Every claim comes from AI web research, curated data, or a site visit.",
+  "methodologyWeightsTitle": "How the score is weighted",
+  "methodologyWeightsBody": "Laptop policy dominates (35%), then seating (25%), Wi-Fi (15%), outlets (15%), noise (10%); outdoor seating adds up to +5. The fastest Wi-Fi in the world is worthless where laptops are banned. Above roughly 25 Mbps, extra speed stops mattering — only genuinely slow Wi-Fi punishes hard.",
+  "methodologyProvenanceTitle": "Why every claim shows its source",
+  "methodologyProvenanceBody": "A claim moves the score in proportion to how much we believe it; the rest is anchored to a neutral prior. An unverified guess barely moves a ranking. That is why every claim shows its source, confidence, and date — and the seal appears only when a human stands behind it.",
+  "methodologyDecayTitle": "Fresh beats stale",
+  "methodologyDecayBody": "Confidence halves every 90 days. A six-month-old observation is a quarter as persuasive as a fresh one — that is what keeps the dataset from quietly rotting into confident fiction.",
+  "methodologyUnknownsTitle": "Honest unknowns",
+  "methodologyUnknownsBody": "\"Unknown\" is a first-class value: we never guess. Multiple observations of one attribute combine by their median, and corroboration raises confidence — capped at 95%. We never claim certainty.",
+  "methodologyDataOriginsTitle": "Where the data comes from",
+  "methodologyOriginCuratedLabel": "Curated",
+  "methodologyOriginCuratedBody": "Entered or checked by a human.",
+  "methodologyOriginOsmLabel": "OSM baseline",
+  "methodologyOriginOsmBody": "A real OpenStreetMap listing with intentionally shallow workability data, not yet deeply researched.",
+  "methodologyOriginAgentLabel": "Agent researched",
+  "methodologyOriginAgentBody": "Found by AI web research and labeled as an estimate.",
+
+  "onboardingPage1Eyebrow": "WORK, WITHOUT THE GUESSWORK",
+  "onboardingPage1Title": "Your next desk might serve espresso.",
+  "onboardingPage1Body": "Find nearby spots where the Wi-Fi works, outlets exist, and opening a laptop is actually welcome.",
+  "onboardingPage2Eyebrow": "THE SIGNALS THAT MATTER",
+  "onboardingPage2Title": "Know before you order.",
+  "onboardingPage2Body": "Compare noise, Wi-Fi, outlets, and laptop policy instead of digging through hundreds of reviews.",
+  "onboardingPage3Eyebrow": "HONEST BY DESIGN",
+  "onboardingPage3Title": "Every score shows its work.",
+  "onboardingPage3Body": "Measured facts lead. Estimates stay labeled. Sources and verification dates show how much to trust.",
+  "onboardingContinue": "Continue",
+  "onboardingFindMyWorkSpot": "Find my work spot",
+  "onboardingPageIndicator": "0{page} / 0{total}",
+  "@onboardingPageIndicator": {
+    "description": "Page indicator, e.g. '01 / 03'. Format is locale-invariant (matches iOS, which leaves this string untranslated).",
+    "placeholders": {
+      "page": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
+  "locationIntroTitle": "Start where you are.",
+  "locationIntroBody": "Your location finds spots nearby. It is never included in a public report.",
+  "useMyLocation": "Use my location",
+  "useUnionSquareInstead": "Use Union Square instead",
+
+  "profileTitle": "You",
+  "profileHeroTitle": "Your city is your office.",
+  "profileHeroBody": "BrewDesk researches Wi-Fi, seating, outlets, noise, and laptop policy so you can choose a spot with confidence.",
+  "profileAccountlessTitle": "Accountless by design",
+  "profileAccountlessBody": "Your saved spots stay on this device. Location is used only to find nearby places.",
+  "profileTransparentTitle": "Transparent research",
+  "profileTransparentBody": "Every workability fact carries its source. Estimates are labeled instead of presented as verified.",
+  "profileMoreThanCafesTitle": "Built for more than cafes",
+  "profileMoreThanCafesBody": "Libraries, parks, malls, and other practical work spots belong here too.",
+  "profileHowScoringWorks": "How scoring works",
+  "profileAboutSectionTitle": "About",
+  "profileSupport": "Support",
+  "profilePrivacyPolicy": "Privacy Policy",
+  "profileTermsOfUse": "Terms of Use",
+  "profileOpenSourceLicenses": "Open-source licenses",
+  "profileVersionLabel": "Version",
+
+  "navSpots": "Spots",
+  "navSaved": "Saved",
+  "navYou": "You",
+
+  "savedTitle": "Saved",
+  "savedImportTooltip": "Import from Google Takeout",
+  "savedFileReadError": "That file couldn't be read.",
+  "savedEmptyTitle": "Save your next work spot",
+  "savedEmptyBody": "Bookmarks stay on this device. No account required.",
+  "savedBrowseNearby": "Browse nearby",
+  "savedFailedRowMessage": "Couldn't load this saved spot.",
+  "savedRemove": "Remove",
+
+  "takeoutResultSummary": "{matched} matched · {unmatched} not in BrewDesk yet",
+  "@takeoutResultSummary": {
+    "placeholders": {
+      "matched": {"type": "int"},
+      "unmatched": {"type": "int"}
+    }
+  },
+  "takeoutConfirmHint": "Matched spots are saved to BrewDesk when you confirm.",
+  "takeoutNotInBrewDeskYet": "Not in BrewDesk yet",
+
+  "venueDetailWorkabilityTitle": "Workability",
+  "venueDetailWhatWeKnowTitle": "What we know",
+  "venueDetailClaimLaptopPolicy": "Laptop policy",
+  "venueDetailClaimNoise": "Noise",
+  "venueDetailClaimSeating": "Seating",
+  "venueDetailOsmDescription": "This is a real OpenStreetMap listing. Workability details have not been deeply researched yet.",
+  "venueDetailResearchedDescription": "This spot combines public-source research with transparent claim-level provenance.",
+  "venueDetailUpdated": "Updated {date}",
+  "@venueDetailUpdated": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "venueDetailDirections": "Directions",
+  "venueDetailRemoveFromSaved": "Remove from saved",
+  "venueDetailSaveSpot": "Save spot",
+  "venueDetailShare": "Share",
+
+  "venueCardSeatingLabel": "seating",
+  "venueCardClaimUnknown": "{label} unknown",
+  "@venueCardClaimUnknown": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  }
+}

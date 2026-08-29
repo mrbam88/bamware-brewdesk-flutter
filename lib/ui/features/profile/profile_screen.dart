@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import '../methodology/methodology_screen.dart';
 
@@ -10,8 +11,9 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('You')),
+      appBar: AppBar(title: Text(l10n.profileTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -21,51 +23,51 @@ class ProfileScreen extends StatelessWidget {
               color: AppColors.green,
               borderRadius: BorderRadius.circular(26),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
+                const Icon(
                   Icons.work_outline_rounded,
                   color: AppColors.cream,
                   size: 34,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
-                  'Your city is your office.',
-                  style: TextStyle(
+                  l10n.profileHeroTitle,
+                  style: const TextStyle(
                     color: AppColors.cream,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'BrewDesk researches Wi-Fi, seating, outlets, noise, and laptop policy so you can choose a spot with confidence.',
-                  style: TextStyle(color: AppColors.cream, height: 1.4),
+                  l10n.profileHeroBody,
+                  style: const TextStyle(color: AppColors.cream, height: 1.4),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 18),
-          const _InfoTile(
+          _InfoTile(
             icon: Icons.lock_outline_rounded,
-            title: 'Accountless by design',
-            subtitle: 'Your saved spots stay on this device. Location is used only to find nearby places.',
+            title: l10n.profileAccountlessTitle,
+            subtitle: l10n.profileAccountlessBody,
           ),
-          const _InfoTile(
+          _InfoTile(
             icon: Icons.fact_check_outlined,
-            title: 'Transparent research',
-            subtitle: 'Every workability fact carries its source. Estimates are labeled instead of presented as verified.',
+            title: l10n.profileTransparentTitle,
+            subtitle: l10n.profileTransparentBody,
           ),
-          const _InfoTile(
+          _InfoTile(
             icon: Icons.public_rounded,
-            title: 'Built for more than cafes',
-            subtitle: 'Libraries, parks, malls, and other practical work spots belong here too.',
+            title: l10n.profileMoreThanCafesTitle,
+            subtitle: l10n.profileMoreThanCafesBody,
           ),
           const SizedBox(height: 6),
           _NavTile(
             icon: Icons.insights_rounded,
-            title: 'How scoring works',
+            title: l10n.profileHowScoringWorks,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MethodologyScreen()),
             ),
@@ -147,6 +149,7 @@ class _AboutSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Column(
         children: [
@@ -155,7 +158,7 @@ class _AboutSection extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'About',
+                l10n.profileAboutSectionTitle,
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -165,22 +168,22 @@ class _AboutSection extends StatelessWidget {
           ),
           _AboutRow(
             icon: Icons.mail_outline_rounded,
-            label: 'Support',
+            label: l10n.profileSupport,
             onTap: () => launchUrl(_supportUri),
           ),
           _AboutRow(
             icon: Icons.privacy_tip_outlined,
-            label: 'Privacy Policy',
+            label: l10n.profilePrivacyPolicy,
             onTap: () => launchUrl(_privacyUri),
           ),
           _AboutRow(
             icon: Icons.gavel_outlined,
-            label: 'Terms of Use',
+            label: l10n.profileTermsOfUse,
             onTap: () => launchUrl(_termsUri),
           ),
           _AboutRow(
             icon: Icons.description_outlined,
-            label: 'Open-source licenses',
+            label: l10n.profileOpenSourceLicenses,
             onTap: () =>
                 showLicensePage(context: context, applicationName: 'BrewDesk'),
           ),
@@ -219,6 +222,7 @@ class _VersionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
       child: FutureBuilder<PackageInfo>(
@@ -230,7 +234,10 @@ class _VersionRow extends StatelessWidget {
               : '${info.version} (${info.buildNumber})';
           return Row(
             children: [
-              Text('Version', style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                l10n.profileVersionLabel,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               const Spacer(),
               Text(
                 label,
