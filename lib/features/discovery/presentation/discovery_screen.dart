@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/core/networking/connectivity_service.dart';
 import 'package:brewdesk/core/location/location_mode.dart';
@@ -17,7 +19,7 @@ import 'package:brewdesk/core/widgets/branded_loading_view.dart';
 import 'package:brewdesk/core/widgets/glass_surface.dart';
 import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
-import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
+import 'package:brewdesk/features/discovery/application/discovery_bloc.dart';
 import 'package:brewdesk/features/discovery/application/discovery_filters_controller.dart';
 import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
 
@@ -29,16 +31,16 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
-  // LEARN: transitional wiring — the screen still owns its ChangeNotifier
-  // view model, but its dependencies now come from the provider graph via
-  // ref.read (a one-time grab in initState-adjacent code is exactly what
-  // ref.read is for; ref.watch belongs in build). Tests stopped passing
-  // fakes through constructors and override the providers instead.
-  late final DiscoveryViewModel _model = DiscoveryViewModel(
-    ref.read(venueRepositoryProvider),
-    ref.read(effectiveLocationServiceProvider),
+  // LEARN: the bloc is created by the widget that owns its lifetime, with
+  // dependencies from the provider graph (ref.read at construction — the
+  // graph is the container, the widget is just the scope). Events go in,
+  // states come out; the screen never mutates anything directly.
+  late final DiscoveryBloc _bloc = DiscoveryBloc(
+    venueRepository: ref.read(venueRepositoryProvider),
+    locationService: ref.read(effectiveLocationServiceProvider),
     connectivity: ref.read(connectivityServiceProvider),
   );
+  StreamSubscription<DiscoveryState>? _blocSub;
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -55,24 +57,32 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   bool _brandedLoadingMinDurationElapsed = true;
   Timer? _brandedLoadingTimer;
 
-  bool get _wantsBrandedLoading =>
-      _model.errorKind == null && _model.loading && _model.venues.isEmpty;
+  bool get _wantsBrandedLoading {
+    final state = _bloc.state;
+    return switch (state) {
+      // Loading phases with nothing stale to show — exactly the cold-start
+      // window brewdesk#33 branded. Loaded and failed always render content
+      // (the shelf/empty view or a degraded card).
+      DiscoveryLocating() ||
+      DiscoverySearching() => state.venuesOrStale.isEmpty,
+      DiscoveryLoaded() || DiscoveryFailed() => false,
+    };
+  }
 
   @override
   void initState() {
     super.initState();
     _searchFocus.addListener(_onFocusChanged);
-    _model.load().then((_) {
-      if (mounted) _mapController.move(_model.center, 13.5);
-    });
-    // The synchronous prefix of load() above already flipped
-    // `_model.loading` to true, so this reflects the real initial state —
-    // assigned directly (not via setState) since the first build hasn't
-    // happened yet. The listener below is added after, so it only reacts
-    // to changes from here on.
+    _bloc.add(const DiscoveryStarted());
+    // The bloc's initial state is locating, so this reflects the real
+    // initial state — assigned directly (not via setState) since the first
+    // build hasn't happened yet.
     _showBrandedLoading = _wantsBrandedLoading;
     if (_showBrandedLoading) _startBrandedLoadingHold();
-    _model.addListener(_syncBrandedLoading);
+    // The branded-loading hold is widget-local presentation state (a timer
+    // + two booleans), so it stays in the State class and just follows the
+    // bloc's stream.
+    _blocSub = _bloc.stream.listen((_) => _syncBrandedLoading());
   }
 
   @override
@@ -80,9 +90,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     _searchFocus.removeListener(_onFocusChanged);
     _searchFocus.dispose();
     _searchController.dispose();
-    _model.removeListener(_syncBrandedLoading);
+    _blocSub?.cancel();
     _brandedLoadingTimer?.cancel();
-    _model.dispose();
+    _bloc.close();
     super.dispose();
   }
 
@@ -129,108 +139,131 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return ListenableBuilder(
-      listenable: _model,
-      builder: (context, _) {
-        // LEARN: server state (loaded venues, from the view model) meets
-        // client state (query + filters, from the Notifier) HERE, in the
-        // widget — a pure function applied at render time, like deriving a
-        // filtered list in a selector instead of storing it.
-        final venues = ref
-            .watch(discoveryFiltersControllerProvider)
-            .apply(_model.venues);
-        final searching = _searchFocus.hasFocus;
-        return Scaffold(
-          body: searching
-              ? _searchFocusView(l10n, venues)
-              : Stack(
-                  children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _model.center,
-                        initialZoom: 13.5,
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'io.bamware.brewdesk',
+    // LEARN: the BlocListener/BlocBuilder split is rendering vs side
+    // effects. The listener runs ONCE per matching transition and may do
+    // imperative things (here: fly the map camera); the builder must stay
+    // a pure state->widgets function that can run any number of times.
+    // Navigation and snackbars belong in listeners for the same reason.
+    return BlocListener<DiscoveryBloc, DiscoveryState>(
+      bloc: _bloc,
+      listenWhen: (previous, current) =>
+          current.centerOrNull != null &&
+          previous.centerOrNull != current.centerOrNull,
+      listener: (context, state) =>
+          _mapController.move(state.centerOrNull!, 13.5),
+      child: BlocBuilder<DiscoveryBloc, DiscoveryState>(
+        bloc: _bloc,
+        builder: (context, state) {
+          // LEARN: server state (the bloc's venues) meets client state
+          // (query + filters, from the Notifier) HERE, in the widget — a
+          // pure function applied at render time, like deriving a filtered
+          // list in a selector instead of storing it.
+          final venues = ref
+              .watch(discoveryFiltersControllerProvider)
+              .apply(state.venuesOrStale);
+          final searching = _searchFocus.hasFocus;
+          return Scaffold(
+            body: searching
+                ? _searchFocusView(l10n, venues, state)
+                : Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter:
+                              state.centerOrNull ?? DiscoveryBloc.manhattan,
+                          initialZoom: 13.5,
                         ),
-                        MarkerLayer(
-                          markers: MapMarkerPlanner.plan(venues)
-                              .map(
-                                (venue) => Marker(
-                                  point: LatLng(venue.lat, venue.lng),
-                                  width: 40,
-                                  height: 40,
-                                  child: _MapPin(
-                                    venue: venue,
-                                    onTap: () => _openVenue(venue),
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                        RichAttributionWidget(
-                          attributions: [
-                            TextSourceAttribution('OpenStreetMap contributors'),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SafeArea(
-                      child: _searchAndFilters(
-                        context,
-                        l10n,
-                        venues.length,
-                        _model.totalVenues,
-                      ),
-                    ),
-                    if (_model.errorKind != null)
-                      Center(
-                        child: _ErrorCard(
-                          key: Key(
-                            _model.errorKind == DiscoveryErrorKind.offline
-                                ? 'discovery-state-offline'
-                                : 'discovery-state-engine-error',
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'io.bamware.brewdesk',
                           ),
-                          message:
-                              _model.error ??
-                              (_model.errorKind == DiscoveryErrorKind.offline
-                                  ? l10n.discoveryErrorOffline
-                                  : l10n.discoveryErrorGeneric),
-                          kind: _model.errorKind ?? DiscoveryErrorKind.engine,
-                          onRetry: _model.load,
+                          MarkerLayer(
+                            markers: MapMarkerPlanner.plan(venues)
+                                .map(
+                                  (venue) => Marker(
+                                    point: LatLng(venue.lat, venue.lng),
+                                    width: 40,
+                                    height: 40,
+                                    child: _MapPin(
+                                      venue: venue,
+                                      onTap: () => _openVenue(venue),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                          ),
+                          RichAttributionWidget(
+                            attributions: [
+                              TextSourceAttribution(
+                                'OpenStreetMap contributors',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SafeArea(
+                        child: _searchAndFilters(
+                          context,
+                          l10n,
+                          venues.length,
+                          state.venuesOrStale.length,
+                          state,
                         ),
-                      )
-                    else if (_showBrandedLoading)
-                      const Positioned.fill(
-                        child: BrandedLoadingView(
-                          key: Key('discovery-state-loading'),
-                        ),
-                      )
-                    else
-                      _venueShelf(l10n, venues),
-                  ],
-                ),
-          floatingActionButton: searching
-              ? null
-              : Padding(
-                  padding: const EdgeInsets.only(bottom: 232),
-                  child: FloatingActionButton.small(
-                    tooltip: l10n.discoveryUseMyLocationTooltip,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    foregroundColor: AppColors.green,
-                    onPressed: () async {
-                      await _model.load();
-                      _mapController.move(_model.center, 13.5);
-                    },
-                    child: const Icon(Icons.my_location_rounded),
+                      ),
+                      // LEARN: `case` on the sealed state — the failure card
+                      // can only be built from a DiscoveryFailed, and the
+                      // failure's TYPE picks the key/copy. No booleans to
+                      // cross-check, no error text without an error.
+                      if (state case DiscoveryFailed(:final failure))
+                        Center(
+                          child: _ErrorCard(
+                            key: Key(switch (failure) {
+                              DiscoveryOffline() => 'discovery-state-offline',
+                              DiscoveryEngineDown() =>
+                                'discovery-state-engine-error',
+                            }),
+                            message: switch (failure) {
+                              DiscoveryOffline() => l10n.discoveryErrorOffline,
+                              DiscoveryEngineDown(:final message?) => message,
+                              DiscoveryEngineDown() =>
+                                l10n.discoveryErrorGeneric,
+                            },
+                            failure: failure,
+                            onRetry: () =>
+                                _bloc.add(const DiscoveryRetryPressed()),
+                          ),
+                        )
+                      else if (_showBrandedLoading)
+                        const Positioned.fill(
+                          child: BrandedLoadingView(
+                            key: Key('discovery-state-loading'),
+                          ),
+                        )
+                      else
+                        _venueShelf(l10n, venues),
+                    ],
                   ),
-                ),
-        );
-      },
+            floatingActionButton: searching
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(bottom: 232),
+                    child: FloatingActionButton.small(
+                      tooltip: l10n.discoveryUseMyLocationTooltip,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: AppColors.green,
+                      // LEARN: widgets ADD EVENTS; they never await work or
+                      // move the camera themselves — the BlocListener above
+                      // owns that side effect, for taps and auto-retries
+                      // alike. restartable() makes mashing this safe.
+                      onPressed: () => _bloc.add(const DiscoveryStarted()),
+                      child: const Icon(Icons.my_location_rounded),
+                    ),
+                  ),
+          );
+        },
+      ),
     );
   }
 
@@ -238,7 +271,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   /// vertical result list. `Scaffold.resizeToAvoidBottomInset` (the default)
   /// already shrinks this column above the keyboard — no manual inset math
   /// needed.
-  Widget _searchFocusView(AppLocalizations l10n, List<Venue> venues) {
+  Widget _searchFocusView(
+    AppLocalizations l10n,
+    List<Venue> venues,
+    DiscoveryState state,
+  ) {
     return Column(
       children: [
         SafeArea(
@@ -247,7 +284,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             context,
             l10n,
             venues.length,
-            _model.totalVenues,
+            state.venuesOrStale.length,
+            state,
           ),
         ),
         Expanded(
@@ -297,6 +335,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     AppLocalizations l10n,
     int visibleCount,
     int totalCount,
+    DiscoveryState state,
   ) {
     final theme = Theme.of(context);
     final searching = _searchFocus.hasFocus;
@@ -384,7 +423,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
             ),
           ),
-          if (_model.coverage == CoverageLevel.baseline)
+          if (state case DiscoveryLoaded(coverage: CoverageLevel.baseline))
             Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -587,12 +626,12 @@ class _ErrorCard extends StatelessWidget {
   const _ErrorCard({
     super.key,
     required this.message,
-    required this.kind,
+    required this.failure,
     required this.onRetry,
   });
   final String message;
-  final DiscoveryErrorKind kind;
-  final Future<void> Function() onRetry;
+  final DiscoveryFailure failure;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -604,12 +643,10 @@ class _ErrorCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              kind == DiscoveryErrorKind.offline
-                  ? Icons.wifi_off_rounded
-                  : Icons.cloud_off_rounded,
-              size: 34,
-            ),
+            Icon(switch (failure) {
+              DiscoveryOffline() => Icons.wifi_off_rounded,
+              DiscoveryEngineDown() => Icons.cloud_off_rounded,
+            }, size: 34),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
