@@ -10,6 +10,12 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  # riverpod_lint ships as a custom_lint plugin: rules like
+  # avoid_ref_watch_outside_build ("ref.watch in build, ref.read in
+  # callbacks") only run with this plugin enabled. RN analogy: this is the
+  # eslint-plugin-react-hooks of Riverpod — the rules-of-hooks enforcer.
+  plugins:
+    - custom_lint
   exclude:
     - build/**
     - android/**
