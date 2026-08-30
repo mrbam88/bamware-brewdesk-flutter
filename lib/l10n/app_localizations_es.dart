@@ -13,6 +13,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appNameWordmark => 'BREWDESK';
 
   @override
+  String get brandedLoadingLabel => 'Cargando BrewDesk';
+
+  @override
   String get cancel => 'Cancelar';
 
   @override

@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'BREWDESK'**
   String get appNameWordmark;
 
+  /// Accessibility label for the full-bleed branded loading state shown between the native launch surface and first content paint (brewdesk-flutter#33).
+  ///
+  /// In en, this message translates to:
+  /// **'Loading BrewDesk'**
+  String get brandedLoadingLabel;
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:

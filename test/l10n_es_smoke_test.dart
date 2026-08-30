@@ -40,8 +40,12 @@ class _FailFastHttpClient implements HttpClient {
 
 /// Advances several frames without ever settling to "no more frames" —
 /// flutter_map keeps scheduling work, so `pumpAndSettle` is not safe here.
+///
+/// 20 iterations of 20ms comfortably clears the branded loading state's
+/// ~300ms reduce-flicker floor (brewdesk#33) so the Spots-tab assertions
+/// below don't race it.
 Future<void> _pumpDiscovery(WidgetTester tester) async {
-  for (var i = 0; i < 6; i++) {
+  for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 20));
   }
 }

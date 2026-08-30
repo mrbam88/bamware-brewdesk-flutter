@@ -82,8 +82,12 @@ Future<Widget> _harness() async {
   );
 }
 
+/// 20 iterations of 20ms comfortably clears the branded loading state's
+/// ~300ms reduce-flicker floor (brewdesk#33) — the full-bleed loading view
+/// would otherwise still be covering (and hit-testing over) the search
+/// field on the first tap below.
 Future<void> _pumpDiscovery(WidgetTester tester) async {
-  for (var i = 0; i < 6; i++) {
+  for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 20));
   }
 }
