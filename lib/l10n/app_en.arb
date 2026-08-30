@@ -42,6 +42,7 @@
     }
   },
   "whatNumbersMean": "What the numbers mean",
+  "workFitCaptionLabel": "WORK FIT",
 
   "discoveryUseMyLocationTooltip": "Use my location",
   "discoverySearchHint": "Search work spots",
@@ -55,7 +56,15 @@
   "discoveryBaselineBanner": "OSM baseline · details are still being researched",
   "discoveryEmptyView": "No spots in this view.",
   "discoveryClearFilters": "Clear filters",
-  "discoveryBestNearby": "Best nearby",
+  "discoveryScoresShowWorkFit": "Scores show Work Fit",
+  "discoveryShelfSpotsInView": "{count} spots in view",
+  "@discoveryShelfSpotsInView": {
+    "description": "Shelf header count. Always plural, even for 0 or 1 — matches discoveryVisibleOfTotal's convention.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "discoveryDragForMapHint": "Drag for map",
   "discoveryTryAgain": "Try again",
   "discoveryErrorOffline": "You're offline. We'll try again once you're back online.",
   "discoveryErrorGeneric": "We could not reach the spot service. Check your connection and try again.",
@@ -127,6 +136,7 @@
 
   "savedTitle": "Saved",
   "savedImportTooltip": "Import from Google Takeout",
+  "savedImportAction": "Import",
   "savedFileReadError": "That file couldn't be read.",
   "savedEmptyTitle": "Save your next work spot",
   "savedEmptyBody": "Bookmarks stay on this device. No account required.",
@@ -162,11 +172,12 @@
   "venueDetailSaveSpot": "Save spot",
   "venueDetailShare": "Share",
 
-  "venueCardSeatingLabel": "seating",
-  "venueCardClaimUnknown": "{label} unknown",
-  "@venueCardClaimUnknown": {
+  "venueCardProvenance": "Updated {date} · {source}",
+  "@venueCardProvenance": {
+    "description": "Shelf/saved venue card's short provenance line — rendered only when the venue has a known observation date (house rule: unknown/optional data renders nothing).",
     "placeholders": {
-      "label": {"type": "String"}
+      "date": {"type": "String"},
+      "source": {"type": "String"}
     }
   }
 }

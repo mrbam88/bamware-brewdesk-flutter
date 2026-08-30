@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
 import 'saved_view_model.dart';
@@ -90,17 +91,23 @@ class _SavedScreenState extends State<SavedScreen> {
               builder: (context, _) {
                 final working =
                     _importModel.phase == TakeoutImportPhase.working;
-                return IconButton(
-                  key: const Key('import-takeout'),
-                  tooltip: l10n.savedImportTooltip,
-                  onPressed: working ? null : _importModel.pickAndImport,
-                  icon: working
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.file_upload_outlined),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Tooltip(
+                    message: l10n.savedImportTooltip,
+                    child: TextButton.icon(
+                      key: const Key('import-takeout'),
+                      onPressed: working ? null : _importModel.pickAndImport,
+                      icon: working
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.file_download_outlined, size: 18),
+                      label: Text(l10n.savedImportAction),
+                    ),
+                  ),
                 );
               },
             ),
@@ -116,7 +123,11 @@ class _SavedScreenState extends State<SavedScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.bookmark_add_outlined, size: 52),
+                      const Icon(
+                        Icons.bookmark_add_outlined,
+                        size: 52,
+                        color: AppColors.sage,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         l10n.savedEmptyTitle,

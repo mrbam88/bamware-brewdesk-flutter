@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'What the numbers mean'**
   String get whatNumbersMean;
 
+  /// No description provided for @workFitCaptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WORK FIT'**
+  String get workFitCaptionLabel;
+
   /// No description provided for @discoveryUseMyLocationTooltip.
   ///
   /// In en, this message translates to:
@@ -272,11 +278,23 @@ abstract class AppLocalizations {
   /// **'Clear filters'**
   String get discoveryClearFilters;
 
-  /// No description provided for @discoveryBestNearby.
+  /// No description provided for @discoveryScoresShowWorkFit.
   ///
   /// In en, this message translates to:
-  /// **'Best nearby'**
-  String get discoveryBestNearby;
+  /// **'Scores show Work Fit'**
+  String get discoveryScoresShowWorkFit;
+
+  /// Shelf header count. Always plural, even for 0 or 1 — matches discoveryVisibleOfTotal's convention.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} spots in view'**
+  String discoveryShelfSpotsInView(int count);
+
+  /// No description provided for @discoveryDragForMapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag for map'**
+  String get discoveryDragForMapHint;
 
   /// No description provided for @discoveryTryAgain.
   ///
@@ -626,6 +644,12 @@ abstract class AppLocalizations {
   /// **'Import from Google Takeout'**
   String get savedImportTooltip;
 
+  /// No description provided for @savedImportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get savedImportAction;
+
   /// No description provided for @savedFileReadError.
   ///
   /// In en, this message translates to:
@@ -752,17 +776,11 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get venueDetailShare;
 
-  /// No description provided for @venueCardSeatingLabel.
+  /// Shelf/saved venue card's short provenance line — rendered only when the venue has a known observation date (house rule: unknown/optional data renders nothing).
   ///
   /// In en, this message translates to:
-  /// **'seating'**
-  String get venueCardSeatingLabel;
-
-  /// No description provided for @venueCardClaimUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'{label} unknown'**
-  String venueCardClaimUnknown(String label);
+  /// **'Updated {date} · {source}'**
+  String venueCardProvenance(String date, String source);
 }
 
 class _AppLocalizationsDelegate

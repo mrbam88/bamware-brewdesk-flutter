@@ -59,9 +59,14 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                IconButton(
+                IconButton.filled(
                   tooltip: l10n.filtersTooltip,
                   onPressed: _controller.toggle,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                  ),
                   icon: Icon(
                     count > 0
                         ? Icons.filter_alt_rounded
@@ -70,16 +75,16 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
                 ),
                 if (count > 0)
                   Positioned(
-                    right: 4,
-                    top: 4,
+                    right: -2,
+                    top: -2,
                     child: IgnorePointer(
                       child: CircleAvatar(
                         radius: 8,
-                        backgroundColor: AppColors.green,
+                        backgroundColor: Colors.white,
                         child: Text(
                           count.toString(),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.green,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                           ),
@@ -192,16 +197,22 @@ class WorkFitFilterMenu extends StatelessWidget {
                 const _ScoreTierLegend(),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    key: const Key('filters-reset'),
-                    onPressed: count == 0 ? null : model.resetFilters,
-                    icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                    label: Text(l10n.filtersResetCount(count)),
+                // brewdesk#28: the Reset row is only ever useful once a
+                // filter is active — it disappears entirely at 0 instead of
+                // sitting there disabled.
+                if (count > 0) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const Key('filters-reset'),
+                      onPressed: model.resetFilters,
+                      icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                      label: Text(l10n.filtersResetCount(count)),
+                    ),
                   ),
-                ),
+                ] else
+                  const SizedBox(height: 4),
               ],
             ),
           ),
