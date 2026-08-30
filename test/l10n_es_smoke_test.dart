@@ -106,11 +106,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Guarda tu próximo lugar de trabajo'), findsOneWidget);
 
-      // You tab.
+      // You tab: the compact list (brewdesk-flutter#32).
       await tester.tap(find.text('Tú'));
       await tester.pumpAndSettle();
-      expect(find.text('Tu ciudad es tu oficina.'), findsOneWidget);
       expect(find.text('Cómo funciona la puntuación'), findsOneWidget);
+      expect(find.text('Compartir la app'), findsOneWidget);
+      expect(find.text('Acerca de'), findsOneWidget);
+
+      // About row → detail screen, where the hero card now lives.
+      await tester.tap(find.text('Acerca de'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tu ciudad es tu oficina.'), findsOneWidget);
     }, createHttpClient: (context) => _FailFastHttpClient());
   });
 }

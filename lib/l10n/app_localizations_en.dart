@@ -278,6 +278,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileHowScoringWorks => 'How scoring works';
 
   @override
+  String get profileShareApp => 'Share the app';
+
+  @override
+  String get profileAboutTitle => 'About';
+
+  @override
   String get profileAboutSectionTitle => 'About';
 
   @override

@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'How scoring works'**
   String get profileHowScoringWorks;
 
+  /// No description provided for @profileShareApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Share the app'**
+  String get profileShareApp;
+
+  /// No description provided for @profileAboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get profileAboutTitle;
+
   /// No description provided for @profileAboutSectionTitle.
   ///
   /// In en, this message translates to:
