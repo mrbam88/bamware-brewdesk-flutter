@@ -65,6 +65,6 @@ void main() {
 
     expect(model.error, isNull);
     expect(model.center, DiscoveryViewModel.manhattan);
-    expect(model.visibleVenues, isNotEmpty);
+    expect(model.venues, isNotEmpty);
   });
 }

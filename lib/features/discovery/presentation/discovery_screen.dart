@@ -18,6 +18,7 @@ import 'package:brewdesk/core/widgets/glass_surface.dart';
 import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
+import 'package:brewdesk/features/discovery/application/discovery_filters_controller.dart';
 import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
@@ -55,9 +56,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   Timer? _brandedLoadingTimer;
 
   bool get _wantsBrandedLoading =>
-      _model.errorKind == null &&
-      _model.loading &&
-      _model.visibleVenues.isEmpty;
+      _model.errorKind == null && _model.loading && _model.venues.isEmpty;
 
   @override
   void initState() {
@@ -123,7 +122,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   void _cancelSearch() {
     _searchController.clear();
-    _model.setQuery('');
+    ref.read(discoveryFiltersControllerProvider.notifier).setQuery('');
     _searchFocus.unfocus();
   }
 
@@ -133,7 +132,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     return ListenableBuilder(
       listenable: _model,
       builder: (context, _) {
-        final venues = _model.visibleVenues;
+        // LEARN: server state (loaded venues, from the view model) meets
+        // client state (query + filters, from the Notifier) HERE, in the
+        // widget — a pure function applied at render time, like deriving a
+        // filtered list in a selector instead of storing it.
+        final venues = ref
+            .watch(discoveryFiltersControllerProvider)
+            .apply(_model.venues);
         final searching = _searchFocus.hasFocus;
         return Scaffold(
           body: searching
@@ -268,10 +273,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       // screen included, rebuilds just this subtree. This
                       // replaces a blank setState listener that redrew the
                       // whole screen on every toggle.
-                      saved: ref.watch(savedVenueIdsProvider).contains(venue.id),
+                      saved: ref
+                          .watch(savedVenueIdsProvider)
+                          .contains(venue.id),
                       onTap: () => _openVenue(venue),
-                      onSave: () =>
-                          ref.read(savedVenueIdsProvider.notifier).toggle(venue.id),
+                      onSave: () => ref
+                          .read(savedVenueIdsProvider.notifier)
+                          .toggle(venue.id),
                     );
                   },
                 ),
@@ -320,7 +328,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                             child: TextField(
                               controller: _searchController,
                               focusNode: _searchFocus,
-                              onChanged: _model.setQuery,
+                              onChanged: ref
+                                  .read(
+                                    discoveryFiltersControllerProvider.notifier,
+                                  )
+                                  .setQuery,
                               textInputAction: TextInputAction.search,
                               decoration: InputDecoration(
                                 hintText: l10n.discoverySearchHint,
@@ -340,7 +352,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                               child: Text(l10n.cancel),
                             )
                           else
-                            WorkFitFilterButton(model: _model),
+                            const WorkFitFilterButton(),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -428,11 +440,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                               l10n.discoveryEmptyView,
                               textAlign: TextAlign.center,
                             ),
-                            if (_model.activeFilterCount > 0) ...[
+                            if (ref
+                                    .watch(discoveryFiltersControllerProvider)
+                                    .activeCount >
+                                0) ...[
                               const SizedBox(height: 12),
                               OutlinedButton(
                                 key: const Key('discovery-clear-filters'),
-                                onPressed: _model.resetFilters,
+                                onPressed: ref
+                                    .read(
+                                      discoveryFiltersControllerProvider
+                                          .notifier,
+                                    )
+                                    .resetFilters,
                                 child: Text(l10n.discoveryClearFilters),
                               ),
                             ],
@@ -451,10 +471,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       final venue = venues[index - 1];
                       return VenueCard(
                         venue: venue,
-                        saved: ref.watch(savedVenueIdsProvider).contains(venue.id),
+                        saved: ref
+                            .watch(savedVenueIdsProvider)
+                            .contains(venue.id),
                         onTap: () => _openVenue(venue),
-                        onSave: () =>
-                          ref.read(savedVenueIdsProvider.notifier).toggle(venue.id),
+                        onSave: () => ref
+                            .read(savedVenueIdsProvider.notifier)
+                            .toggle(venue.id),
                       );
                     },
                   ),
@@ -466,9 +489,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   void _openVenue(Venue venue) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => VenueDetailScreen(initialVenue: venue),
-      ),
+      MaterialPageRoute(builder: (_) => VenueDetailScreen(initialVenue: venue)),
     );
   }
 }

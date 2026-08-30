@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:brewdesk/core/widgets/glass_surface.dart';
 
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/core/theme/app_theme.dart';
 import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
-import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
+import 'package:brewdesk/features/discovery/application/discovery_filters_controller.dart';
+import 'package:brewdesk/features/discovery/domain/discovery_filters.dart';
 
 /// UI3 parity (brewdesk#118 on iOS, #7 here): the filter button anchors a
 /// small popover menu instead of the old flat chip rail. The badge on the
-/// button always mirrors [DiscoveryViewModel.activeFilterCount].
-class WorkFitFilterButton extends StatefulWidget {
-  const WorkFitFilterButton({super.key, required this.model});
-
-  final DiscoveryViewModel model;
+/// button always mirrors [DiscoveryFilters.activeCount].
+class WorkFitFilterButton extends ConsumerStatefulWidget {
+  const WorkFitFilterButton({super.key});
 
   @override
-  State<WorkFitFilterButton> createState() => _WorkFitFilterButtonState();
+  ConsumerState<WorkFitFilterButton> createState() =>
+      _WorkFitFilterButtonState();
 }
 
-class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
+class _WorkFitFilterButtonState extends ConsumerState<WorkFitFilterButton> {
   final OverlayPortalController _controller = OverlayPortalController();
   final LayerLink _link = LayerLink();
 
@@ -57,17 +58,21 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
                   child: Material(
                     type: MaterialType.transparency,
                     borderRadius: BorderRadius.circular(18),
-                    child: WorkFitFilterMenu(model: widget.model),
+                    child: const WorkFitFilterMenu(),
                   ),
                 ),
               ),
             ),
           ],
         ),
-        child: ListenableBuilder(
-          listenable: widget.model,
-          builder: (context, _) {
-            final count = widget.model.activeFilterCount;
+        // LEARN: was a ListenableBuilder over the whole view model; now a
+        // watch of just the filters value. Only filter changes redraw the
+        // badge — venue loads no longer touch this subtree.
+        child: Builder(
+          builder: (context) {
+            final count = ref
+                .watch(discoveryFiltersControllerProvider)
+                .activeCount;
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -115,121 +120,116 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
 
 /// The anchored panel: Laptop friendly toggle, Wi-Fi / Outlets tri-state
 /// rows, a venue-type row, the score-tier legend, then Reset. Filters apply
-/// live against [model] as each control changes — no separate "Apply" step.
-class WorkFitFilterMenu extends StatelessWidget {
-  const WorkFitFilterMenu({super.key, required this.model});
-
-  final DiscoveryViewModel model;
+/// live as each control changes — no separate "Apply" step.
+class WorkFitFilterMenu extends ConsumerWidget {
+  const WorkFitFilterMenu({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    return ListenableBuilder(
-      listenable: model,
-      builder: (context, _) {
-        final count = model.activeFilterCount;
-        return SizedBox(
-          width: 296,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: model.laptopFriendly,
-                  onChanged: model.setLaptopFriendly,
-                  secondary: const Icon(Icons.laptop_mac_rounded, size: 20),
-                  title: Text(
-                    l10n.filtersLaptopFriendly,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _DimensionRow<WifiLevel?>(
-                  title: l10n.filtersWifiTitle,
-                  icon: Icons.wifi_rounded,
-                  value: model.minWifi,
-                  options: [
-                    (null, l10n.anyOption, 'filter-wifi-any'),
-                    (WifiLevel.ok, l10n.filtersWifiOk, 'filter-wifi-ok'),
-                    (WifiLevel.fast, l10n.filtersWifiFast, 'filter-wifi-fast'),
-                  ],
-                  onChanged: model.setMinWifi,
-                ),
-                const SizedBox(height: 14),
-                _DimensionRow<OutletsLevel?>(
-                  title: l10n.filtersOutletsTitle,
-                  icon: Icons.power_rounded,
-                  value: model.minOutlets,
-                  options: [
-                    (null, l10n.anyOption, 'filter-outlets-any'),
-                    (
-                      OutletsLevel.some,
-                      l10n.filtersOutletsSome,
-                      'filter-outlets-some',
-                    ),
-                    (
-                      OutletsLevel.plenty,
-                      l10n.filtersOutletsPlenty,
-                      'filter-outlets-plenty',
-                    ),
-                  ],
-                  onChanged: model.setMinOutlets,
-                ),
-                const SizedBox(height: 14),
-                _DimensionRow<WorkVenueType?>(
-                  title: l10n.filtersVenueTypeTitle,
-                  icon: Icons.storefront_rounded,
-                  value: model.venueType,
-                  options: [
-                    (null, l10n.anyOption, 'filter-type-any'),
-                    (
-                      WorkVenueType.cafe,
-                      l10n.filtersVenueTypeCafe,
-                      'filter-type-cafe',
-                    ),
-                    (
-                      WorkVenueType.library,
-                      l10n.filtersVenueTypeLibrary,
-                      'filter-type-library',
-                    ),
-                    (
-                      WorkVenueType.park,
-                      l10n.filtersVenueTypePark,
-                      'filter-type-park',
-                    ),
-                  ],
-                  onChanged: model.setVenueType,
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                const _ScoreTierLegend(),
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                // brewdesk#28: the Reset row is only ever useful once a
-                // filter is active — it disappears entirely at 0 instead of
-                // sitting there disabled.
-                if (count > 0) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      key: const Key('filters-reset'),
-                      onPressed: model.resetFilters,
-                      icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                      label: Text(l10n.filtersResetCount(count)),
-                    ),
-                  ),
-                ] else
-                  const SizedBox(height: 4),
-              ],
+    final filters = ref.watch(discoveryFiltersControllerProvider);
+    final notifier = ref.read(discoveryFiltersControllerProvider.notifier);
+    final count = filters.activeCount;
+    return SizedBox(
+      width: 296,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: filters.laptopFriendly,
+              onChanged: notifier.setLaptopFriendly,
+              secondary: const Icon(Icons.laptop_mac_rounded, size: 20),
+              title: Text(
+                l10n.filtersLaptopFriendly,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 14),
+            _DimensionRow<WifiLevel?>(
+              title: l10n.filtersWifiTitle,
+              icon: Icons.wifi_rounded,
+              value: filters.minWifi,
+              options: [
+                (null, l10n.anyOption, 'filter-wifi-any'),
+                (WifiLevel.ok, l10n.filtersWifiOk, 'filter-wifi-ok'),
+                (WifiLevel.fast, l10n.filtersWifiFast, 'filter-wifi-fast'),
+              ],
+              onChanged: notifier.setMinWifi,
+            ),
+            const SizedBox(height: 14),
+            _DimensionRow<OutletsLevel?>(
+              title: l10n.filtersOutletsTitle,
+              icon: Icons.power_rounded,
+              value: filters.minOutlets,
+              options: [
+                (null, l10n.anyOption, 'filter-outlets-any'),
+                (
+                  OutletsLevel.some,
+                  l10n.filtersOutletsSome,
+                  'filter-outlets-some',
+                ),
+                (
+                  OutletsLevel.plenty,
+                  l10n.filtersOutletsPlenty,
+                  'filter-outlets-plenty',
+                ),
+              ],
+              onChanged: notifier.setMinOutlets,
+            ),
+            const SizedBox(height: 14),
+            _DimensionRow<WorkVenueType?>(
+              title: l10n.filtersVenueTypeTitle,
+              icon: Icons.storefront_rounded,
+              value: filters.venueType,
+              options: [
+                (null, l10n.anyOption, 'filter-type-any'),
+                (
+                  WorkVenueType.cafe,
+                  l10n.filtersVenueTypeCafe,
+                  'filter-type-cafe',
+                ),
+                (
+                  WorkVenueType.library,
+                  l10n.filtersVenueTypeLibrary,
+                  'filter-type-library',
+                ),
+                (
+                  WorkVenueType.park,
+                  l10n.filtersVenueTypePark,
+                  'filter-type-park',
+                ),
+              ],
+              onChanged: notifier.setVenueType,
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            const _ScoreTierLegend(),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            // brewdesk#28: the Reset row is only ever useful once a
+            // filter is active — it disappears entirely at 0 instead of
+            // sitting there disabled.
+            if (count > 0) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('filters-reset'),
+                  onPressed: notifier.resetFilters,
+                  icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                  label: Text(l10n.filtersResetCount(count)),
+                ),
+              ),
+            ] else
+              const SizedBox(height: 4),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,35 +1,15 @@
-import 'dart:convert';
-
-import 'package:brewdesk/features/venues/data/venue_repository.dart';
-import 'package:brewdesk/core/location/location_service.dart';
-import 'package:brewdesk/features/venues/data/venue_api.dart';
-import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
+import 'package:brewdesk/features/discovery/application/discovery_filters_controller.dart';
+import 'package:brewdesk/features/discovery/domain/discovery_filters.dart';
 import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
+import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-
-Future<DiscoveryViewModel> _emptyModel() async {
-  final client = MockClient(
-    (request) async =>
-        http.Response(jsonEncode({'meta': {}, 'venues': []}), 200),
-  );
-  final repository = ApiVenueRepository(
-    VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
-  );
-  final model = DiscoveryViewModel(repository, const LocationService());
-  await model.load(useDeviceLocation: false);
-  return model;
-}
 
 void main() {
   testWidgets('badge count tracks active filters and Reset clears them all', (
     tester,
   ) async {
-    final model = await _emptyModel();
-
     // The popover is anchored below the button and needs more vertical
     // room than the default 800x600 test surface to hit-test cleanly.
     tester.view.physicalSize = const Size(800, 1400);
@@ -38,17 +18,25 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.topRight,
-            child: WorkFitFilterButton(model: model),
+      const ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topRight,
+              child: WorkFitFilterButton(),
+            ),
           ),
         ),
       ),
     );
+    // The filter widgets need no fakes at all now — filters are pure client
+    // state, so a bare ProviderScope is the whole harness. Assertions read
+    // the same container the widgets use.
+    DiscoveryFilters currentFilters() => ProviderScope.containerOf(
+      tester.element(find.byType(WorkFitFilterButton)),
+    ).read(discoveryFiltersControllerProvider);
 
     // No filters active yet: no badge.
     expect(find.text('1'), findsNothing);
@@ -65,16 +53,17 @@ void main() {
     await tester.tap(find.byKey(const Key('filter-wifi-fast')));
     await tester.pumpAndSettle();
 
-    expect(model.activeFilterCount, 2);
+    expect(currentFilters().activeCount, 2);
     expect(find.text('2'), findsOneWidget);
     expect(find.textContaining('Reset 2 filters'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('filters-reset')));
     await tester.pumpAndSettle();
 
-    expect(model.activeFilterCount, 0);
-    expect(model.laptopFriendly, isFalse);
-    expect(model.minWifi, isNull);
+    final filters = currentFilters();
+    expect(filters.activeCount, 0);
+    expect(filters.laptopFriendly, isFalse);
+    expect(filters.minWifi, isNull);
     // brewdesk#28: the Reset row disappears entirely once there is nothing
     // left to reset, rather than sitting there disabled.
     expect(find.byKey(const Key('filters-reset')), findsNothing);
