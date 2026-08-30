@@ -1,5 +1,5 @@
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/onboarding/onboarding_flow.dart';
+import 'package:brewdesk/features/onboarding/presentation/onboarding_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

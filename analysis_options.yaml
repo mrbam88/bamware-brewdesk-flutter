@@ -10,8 +10,26 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  # riverpod_lint ships as a custom_lint plugin: rules like
+  # avoid_ref_watch_outside_build ("ref.watch in build, ref.read in
+  # callbacks") only run with this plugin enabled. RN analogy: this is the
+  # eslint-plugin-react-hooks of Riverpod — the rules-of-hooks enforcer.
+  plugins:
+    - custom_lint
+  # LEARN: strict mode makes the analyzer treat implicit dynamic and
+  # implicit downcasts as errors — the closest Dart gets to
+  # "strict": true in tsconfig. JSON decoding code is where this bites
+  # (and protects) the most.
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
   exclude:
     - build/**
+    # Generated code is linted by its generators, not by us.
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - lib/l10n/**
     - android/**
     - ios/**
     - web/**
@@ -31,8 +49,9 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Relative imports break silently on file moves (see the feature-first
+    # restructure commit); package imports are move-proof.
+    always_use_package_imports: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

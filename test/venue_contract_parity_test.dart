@@ -7,9 +7,10 @@
 // field on the wire, across researched, osm-baseline, and missing-field
 // payloads, so Venue Engine contract drift breaks a Flutter test instead of
 // shipping silently.
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -88,7 +89,7 @@ VenueApi _apiFor(Future<http.Response> Function(http.Request) handler) =>
 void main() {
   group('Venue.fromJson — optional-field fallbacks', () {
     test('researched payload decodes every claim and top-level field', () {
-      final venue = Venue.fromJson(
+      final venue = VenueDto.decode(
         _researchedVenueJson(
           seating: _claim(value: 'plenty'),
           outdoorSeating: {
@@ -117,7 +118,7 @@ void main() {
     test(
       'missing seating and outdoorSeating claims fall back to an unknown claim',
       () {
-        final venue = Venue.fromJson(_researchedVenueJson());
+        final venue = VenueDto.decode(_researchedVenueJson());
 
         expect(venue.attributes.seating.value, 'unknown');
         expect(venue.attributes.seating.source, 'unknown');
@@ -130,7 +131,7 @@ void main() {
     test(
       'missing business info (website, phone) decodes to null, not a throw',
       () {
-        final venue = Venue.fromJson(_researchedVenueJson());
+        final venue = VenueDto.decode(_researchedVenueJson());
 
         expect(venue.website, isNull);
         expect(venue.phone, isNull);
@@ -138,20 +139,20 @@ void main() {
     );
 
     test('missing distance_m falls back to the neighborhood label', () {
-      final venue = Venue.fromJson(_researchedVenueJson());
+      final venue = VenueDto.decode(_researchedVenueJson());
 
       expect(venue.distanceM, isNull);
       expect(venue.distanceLabel, 'East Village');
     });
 
     test('missing tier defaults to researched (schema.ts default)', () {
-      final venue = Venue.fromJson(_researchedVenueJson());
+      final venue = VenueDto.decode(_researchedVenueJson());
 
       expect(venue.tier, 'researched');
     });
 
     test('osm-baseline payload: unknown attributes, explicit tier, no business info', () {
-      final venue = Venue.fromJson(_baselineVenueJson());
+      final venue = VenueDto.decode(_baselineVenueJson());
 
       expect(venue.tier, 'osm-baseline');
       expect(venue.attributes.wifi.value, 'unknown');
@@ -165,14 +166,14 @@ void main() {
 
   group('Claim — confidence and provenance formatting', () {
     test('confidence missing from the payload defaults to 0', () {
-      final claim = Claim.fromJson({'value': 'unknown', 'source': 'osm'});
+      final claim = ClaimDto.decode({'value': 'unknown', 'source': 'osm'});
 
       expect(claim.confidence, 0);
       expect(claim.confidencePercent, 0);
     });
 
     test('confidence decodes and rounds to a whole percent', () {
-      final claim = Claim.fromJson({
+      final claim = ClaimDto.decode({
         'value': 'fast',
         'source': 'curated',
         'confidence': 0.837,
@@ -185,7 +186,7 @@ void main() {
     test(
       'provenanceLine reports an unknown date when observedAt is missing',
       () {
-        final claim = Claim.fromJson({
+        final claim = ClaimDto.decode({
           'value': 'unknown',
           'source': 'osm',
           'confidence': 0,
@@ -199,7 +200,7 @@ void main() {
     );
 
     test('provenanceLine formats source label, percent, and date key', () {
-      final claim = Claim.fromJson({
+      final claim = ClaimDto.decode({
         'value': 'fast',
         'source': 'agent',
         'confidence': 0.6,
@@ -215,7 +216,7 @@ void main() {
     test(
       'completely empty claim payload decodes to the unknown/unknown fallback',
       () {
-        final claim = Claim.fromJson(<String, dynamic>{});
+        final claim = ClaimDto.decode(<String, dynamic>{});
 
         expect(claim.value, 'unknown');
         expect(claim.source, 'unknown');
@@ -229,7 +230,7 @@ void main() {
     );
 
     test('a non-map claim payload (null) decodes to the same fallback', () {
-      final claim = Claim.fromJson(null);
+      final claim = ClaimDto.decode(null);
 
       expect(claim.value, 'unknown');
       expect(claim.source, 'unknown');
@@ -238,7 +239,7 @@ void main() {
 
   group('VenueAttributes.workabilityCardStamp', () {
     test('four claims that all disagree break the tie toward wifi', () {
-      final attributes = VenueAttributes.fromJson({
+      final attributes = VenueAttributesDto.decode({
         'wifi': _claim(
           source: 'curated',
           confidence: 0.9,
@@ -265,7 +266,7 @@ void main() {
     });
 
     test('a 3-way agreement outvotes the one disagreeing claim', () {
-      final attributes = VenueAttributes.fromJson({
+      final attributes = VenueAttributesDto.decode({
         'wifi': _claim(
           source: 'curated',
           confidence: 0.8,
@@ -295,7 +296,7 @@ void main() {
     });
 
     test('a 2-2 split breaks the tie toward wifi row order', () {
-      final attributes = VenueAttributes.fromJson({
+      final attributes = VenueAttributesDto.decode({
         'wifi': _claim(
           source: 'curated',
           confidence: 0.8,
@@ -325,7 +326,7 @@ void main() {
     });
 
     test('missing seating/outdoorSeating never influence the stamp', () {
-      final attributes = VenueAttributes.fromJson({
+      final attributes = VenueAttributesDto.decode({
         'wifi': _claim(
           source: 'curated',
           confidence: 0.8,
@@ -359,7 +360,7 @@ void main() {
     test(
       'meta.coverage "researched" maps to CoverageLevel.researched',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               _searchBody(
@@ -379,7 +380,7 @@ void main() {
     );
 
     test('meta.coverage "baseline" maps to CoverageLevel.baseline', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             _searchBody(coverage: 'baseline', venue: _baselineVenueJson()),
@@ -397,7 +398,7 @@ void main() {
     test(
       'meta.coverage "none" maps to CoverageLevel.none with an empty list',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"count": 0, "meta": {"coverage": "none"}, "venues": []}',
@@ -414,7 +415,7 @@ void main() {
     );
 
     test('a missing meta object defaults to CoverageLevel.researched', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"count": 1, "venues": [${_encodeJson(_researchedVenueJson())}]}',
@@ -431,7 +432,7 @@ void main() {
     test(
       'an empty venues list decodes without throwing when the key is absent',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor((request) async => http.Response('{"count": 0}', 200)),
         );
 
@@ -444,7 +445,7 @@ void main() {
 
   group('VenueRepository.venue — detail decode', () {
     test('detail response with business info decodes website and phone', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"venue": ${_encodeJson(_researchedVenueJson(website: 'https://researchedcafe.example.com', phone: '+1 212-555-0100'))}, "observations": []}',
@@ -460,7 +461,7 @@ void main() {
     });
 
     test('detail response without business info decodes to null fields', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"venue": ${_encodeJson(_baselineVenueJson())}, "observations": []}',
@@ -481,7 +482,7 @@ void main() {
     test(
       'a relative photo URL resolves against the configured API base URL',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"photos": [{"url": "/v1/photo-proxy/abc123", "attribution": "Jane D."}]}',
@@ -504,7 +505,7 @@ void main() {
     test(
       'an absolute Google-hosted photo URL is left unresolved (unchanged)',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"photos": [{"url": "https://lh3.googleusercontent.com/abc"}]}',
@@ -521,7 +522,7 @@ void main() {
     );
 
     test('a photo missing attribution decodes to a null attribution', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"photos": [{"url": "https://lh3.googleusercontent.com/no-attr"}]}',
@@ -538,7 +539,7 @@ void main() {
     test(
       'a missing photos key decodes to an empty list, never a throw',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor((request) async => http.Response('{}', 200)),
         );
 

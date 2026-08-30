@@ -6,7 +6,7 @@
 // a widget tree (a MaterialApp with GlobalMaterialLocalizations does this
 // for free at runtime); a plain Dart unit test does it explicitly here.
 
-import 'package:brewdesk/domain/use_cases/opening_hours_parser.dart';
+import 'package:brewdesk/features/venues/domain/opening_hours_parser.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';

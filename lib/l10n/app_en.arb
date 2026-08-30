@@ -143,6 +143,7 @@
   "savedImportTooltip": "Import from Google Takeout",
   "savedImportAction": "Import",
   "savedFileReadError": "That file couldn't be read.",
+  "savedLoadError": "Your saved spots couldn't load. Pull to retry.",
   "savedEmptyTitle": "Save your next work spot",
   "savedEmptyBody": "Bookmarks stay on this device. No account required.",
   "savedBrowseNearby": "Browse nearby",

@@ -1,5 +1,6 @@
-import 'package:brewdesk/domain/models/venue.dart';
-import 'package:brewdesk/domain/use_cases/map_marker_planner.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
+import 'package:brewdesk/features/venues/domain/map_marker_planner.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Venue _venue({
@@ -8,7 +9,7 @@ Venue _venue({
   double lng = -74.0,
   int workScore = 60,
 }) {
-  return Venue.fromJson({
+  return VenueDto.decode({
     'id': id,
     'name': id,
     'lat': lat,

@@ -1,9 +1,9 @@
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('venue decodes the live contract and coverage fields', () {
-    final venue = Venue.fromJson({
+    final venue = VenueDto.decode({
       'id': 'spot-1',
       'name': 'Library Hall',
       'lat': 40.7,

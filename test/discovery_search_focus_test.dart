@@ -9,14 +9,15 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/discovery/discovery_screen.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:brewdesk/features/discovery/presentation/discovery_screen.dart';
+import 'package:brewdesk/core/location/union_square_location_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -63,21 +64,28 @@ Future<Widget> _harness() async {
   final client = MockClient(
     (request) async => http.Response(
       jsonEncode({
-        'meta': {},
+        'meta': <String, Object?>{},
         'venues': [_venueJson('spot-1')],
       }),
       200,
     ),
   );
-  return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: DiscoveryScreen(
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        ApiVenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      locationService: const UnionSquareLocationService(),
+      effectiveLocationServiceProvider.overrideWithValue(
+        const UnionSquareLocationService(),
+      ),
+    ],
+    child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: DiscoveryScreen(),
     ),
   );
 }

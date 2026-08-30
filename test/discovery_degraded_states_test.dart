@@ -9,15 +9,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/connectivity_service.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/core/networking/connectivity_service.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/core/branded_loading_view.dart';
-import 'package:brewdesk/ui/features/discovery/discovery_screen.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:brewdesk/core/widgets/branded_loading_view.dart';
+import 'package:brewdesk/features/discovery/presentation/discovery_screen.dart';
+import 'package:brewdesk/core/location/union_square_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -76,16 +77,29 @@ Future<Widget> _harness({
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
-  return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: DiscoveryScreen(
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  // LEARN: fakes enter through provider overrides now, not constructors —
+  // the ProviderScope here plays the role a mocked module/jest.mock played
+  // in RN tests. Overriding sharedPreferencesProvider is enough for the
+  // saved-venues graph; the derived savedVenuesRepositoryProvider builds
+  // its real implementation over the mock prefs.
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        ApiVenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      locationService: const UnionSquareLocationService(),
-      connectivity: connectivity,
+      effectiveLocationServiceProvider.overrideWithValue(
+        const UnionSquareLocationService(),
+      ),
+      if (connectivity != null)
+        connectivityServiceProvider.overrideWithValue(connectivity),
+    ],
+    child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: DiscoveryScreen(),
     ),
   );
 }
@@ -133,7 +147,7 @@ void main() {
         if (attempt == 1) throw const SocketException('offline');
         return http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             'venues': [_venueJson('spot-1')],
           }),
           200,
@@ -168,7 +182,7 @@ void main() {
       final client = MockClient(
         (request) async => http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             // laptopPolicy: discouraged — excluded once laptop-friendly is on.
             'venues': [_venueJson('spot-1')],
           }),
@@ -210,7 +224,7 @@ void main() {
     await HttpOverrides.runZoned(() async {
       final client = MockClient(
         (request) async =>
-            http.Response(jsonEncode({'meta': {}, 'venues': <Object?>[]}), 200),
+            http.Response(jsonEncode({'meta': <String, Object?>{}, 'venues': <Object?>[]}), 200),
       );
       await tester.pumpWidget(await _harness(client: client));
       await _pumpDiscovery(tester);
@@ -249,7 +263,7 @@ void main() {
         gate.complete(
           http.Response(
             jsonEncode({
-              'meta': {},
+              'meta': <String, Object?>{},
               'venues': [_venueJson('spot-1')],
             }),
             200,
@@ -268,7 +282,7 @@ void main() {
       final client = MockClient(
         (request) async => http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             'venues': [_venueJson('spot-1')],
           }),
           200,

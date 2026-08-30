@@ -1,11 +1,12 @@
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/venue_detail/venue_detail_screen.dart';
+import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -19,7 +20,7 @@ Venue _venue({
   Map<String, dynamic>? seating,
   String? website,
 }) {
-  return Venue.fromJson({
+  return VenueDto.decode({
     'id': 'spot-1',
     'name': 'Blue Bottle SoHo',
     'lat': 40.7,
@@ -78,16 +79,19 @@ Future<Widget> _harness(
   final client = MockClient((request) async {
     return http.Response('{"venue": ${_encode(venue)}}', 200);
   });
-  return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: VenueDetailScreen(
-      initialVenue: venue,
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        ApiVenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      shareVenue: share,
+    ],
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: VenueDetailScreen(initialVenue: venue, shareVenue: share),
     ),
   );
 }
@@ -201,7 +205,7 @@ void main() {
   testWidgets('minimal venue renders with optional fields absent', (
     tester,
   ) async {
-    final venue = Venue.fromJson({
+    final venue = VenueDto.decode({
       'id': 'spot-min',
       'name': 'Minimal Spot',
       'lat': 40.7,

@@ -1,5 +1,5 @@
-import 'package:brewdesk/ui/core/app_theme.dart';
-import 'package:brewdesk/ui/core/glass_surface.dart';
+import 'package:brewdesk/core/theme/app_theme.dart';
+import 'package:brewdesk/core/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

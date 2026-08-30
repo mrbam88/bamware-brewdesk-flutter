@@ -4,13 +4,14 @@
 
 import 'dart:convert';
 
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/saved/saved_screen.dart';
+import 'package:brewdesk/features/saved/presentation/saved_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -40,13 +41,12 @@ void main() {
     'a saved id that fails to hydrate surfaces its own row; the rest of '
     'the list still renders',
     (tester) async {
-      SharedPreferences.setMockInitialValues({});
+      // Seed the persisted ids directly — the provider chain (prefs ->
+      // store -> SavedVenueIds) reads them exactly as a real relaunch would.
+      SharedPreferences.setMockInitialValues({
+        'brewdesk.savedVenueIds': ['spot-ok', 'spot-missing'],
+      });
       final preferences = await SharedPreferences.getInstance();
-      final savedVenues = SavedVenuesRepository(
-        SavedVenuesService(preferences),
-      );
-      await savedVenues.toggle('spot-ok');
-      await savedVenues.toggle('spot-missing');
 
       final client = MockClient((request) async {
         if (request.url.path == '/v1/venues/spot-ok') {
@@ -57,18 +57,20 @@ void main() {
         }
         return http.Response('not found', 404);
       });
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: SavedScreen(
-            venueRepository: repository,
-            savedVenues: savedVenues,
-            onBrowse: () {},
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(preferences),
+            venueRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: SavedScreen(onBrowse: () {}),
           ),
         ),
       );
@@ -83,7 +85,13 @@ void main() {
 
       expect(find.text("Couldn't load this saved spot."), findsNothing);
       expect(find.text('Union Hall'), findsOneWidget);
-      expect(savedVenues.contains('spot-missing'), isFalse);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SavedScreen)),
+      );
+      expect(
+        container.read(savedVenueIdsProvider).contains('spot-missing'),
+        isFalse,
+      );
     },
   );
 }

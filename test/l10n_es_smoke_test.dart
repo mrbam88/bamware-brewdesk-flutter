@@ -8,14 +8,15 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
-import 'package:brewdesk/ui/features/shell/app_shell.dart';
+import 'package:brewdesk/core/location/union_square_location_service.dart';
+import 'package:brewdesk/features/shell/presentation/app_shell.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -55,18 +56,25 @@ Future<Widget> _harness() async {
   final preferences = await SharedPreferences.getInstance();
   final client = MockClient(
     (request) async =>
-        http.Response(jsonEncode({'meta': {}, 'venues': []}), 200),
+        http.Response(jsonEncode({'meta': <String, Object?>{}, 'venues': <Object?>[]}), 200),
   );
-  return MaterialApp(
-    locale: const Locale('es'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: AppShell(
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        ApiVenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      locationService: const UnionSquareLocationService(),
+      effectiveLocationServiceProvider.overrideWithValue(
+        const UnionSquareLocationService(),
+      ),
+    ],
+    child: const MaterialApp(
+      locale: Locale('es'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: AppShell(),
     ),
   );
 }

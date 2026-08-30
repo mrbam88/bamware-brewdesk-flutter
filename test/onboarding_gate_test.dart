@@ -1,10 +1,12 @@
-import 'package:brewdesk/data/services/location_service.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
+import 'package:brewdesk/core/location/location_service.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/onboarding/onboarding_gate.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:brewdesk/features/onboarding/presentation/onboarding_gate.dart';
+import 'package:brewdesk/core/location/union_square_location_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Fails the test if it is ever asked for a location — stands in for the
@@ -14,7 +16,7 @@ class _ThrowingLocationService extends LocationService {
   const _ThrowingLocationService();
 
   @override
-  Future<LatLng?> currentLocation() {
+  Future<LocationResult> resolve() {
     fail('the real device LocationService must not be called here');
   }
 }
@@ -24,49 +26,68 @@ class _DeniedLocationService extends LocationService {
   const _DeniedLocationService();
 
   @override
-  Future<LatLng?> currentLocation() async => null;
+  Future<LocationResult> resolve() async =>
+      const LocationResult.unavailable(LocationFailureReason.denied);
+}
+
+Future<void> _pumpGate(
+  WidgetTester tester, {
+  required LocationService deviceLocationService,
+}) async {
+  final preferences = await SharedPreferences.getInstance();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(preferences),
+        locationServiceProvider.overrideWithValue(deviceLocationService),
+      ],
+      child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnboardingGate(child: Scaffold(body: Text('Spots'))),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// The service discovery will actually use — what the flow "resolves" now
+/// that the gate publishes a [LocationMode] instead of handing a service to
+/// a builder callback.
+// LEARN: ProviderScope.containerOf reads the same container the widgets use
+// — the standard way for a widget test to assert on provider state.
+LocationService _effectiveService(WidgetTester tester) =>
+    ProviderScope.containerOf(
+      tester.element(find.byType(OnboardingGate)),
+    ).read(effectiveLocationServiceProvider);
+
+Future<void> _completeFlow(WidgetTester tester, {required String choice}) async {
+  await tester.tap(find.text('Continue'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Continue'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Find my work spot'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(choice));
+  await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('fresh install shows onboarding, not the builder', (
-    tester,
-  ) async {
+  testWidgets('fresh install shows onboarding, not the app', (tester) async {
     SharedPreferences.setMockInitialValues({});
-
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OnboardingGate(
-          locationService: const _DeniedLocationService(),
-          builder: (context, _) => const Scaffold(body: Text('Spots')),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpGate(tester, deviceLocationService: const _DeniedLocationService());
 
     expect(find.text('Your next desk might serve espresso.'), findsOneWidget);
     expect(find.text('Spots'), findsNothing);
   });
 
-  testWidgets('relaunch after completion skips straight to the builder', (
+  testWidgets('relaunch after completion skips straight to the app', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
       'brewdesk.onboarding.complete': true,
     });
-
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OnboardingGate(
-          locationService: const _DeniedLocationService(),
-          builder: (context, _) => const Scaffold(body: Text('Spots')),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpGate(tester, deviceLocationService: const _DeniedLocationService());
 
     expect(find.text('Spots'), findsOneWidget);
     expect(find.text('Your next desk might serve espresso.'), findsNothing);
@@ -77,70 +98,36 @@ void main() {
     'and resolves to the Union Square fallback',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
-      LocationService? resolved;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: OnboardingGate(
-            locationService: const _ThrowingLocationService(),
-            builder: (context, resolvedLocationService) {
-              resolved = resolvedLocationService;
-              return const Scaffold(body: Text('Spots'));
-            },
-          ),
-        ),
+      await _pumpGate(
+        tester,
+        deviceLocationService: const _ThrowingLocationService(),
       );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Find my work spot'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Use Union Square instead'));
-      await tester.pumpAndSettle();
+      await _completeFlow(tester, choice: 'Use Union Square instead');
 
       expect(find.text('Spots'), findsOneWidget);
+      final resolved = _effectiveService(tester);
       expect(resolved, isA<UnionSquareLocationService>());
-      final location = await resolved!.currentLocation();
-      expect(location, UnionSquareLocationService.unionSquare);
+      expect(
+        await resolved.resolve(),
+        const LocationResult.acquired(UnionSquareLocationService.unionSquare),
+      );
     },
   );
 
-  testWidgets('"Use my location" hands the real device location service to the '
-      'builder, and a decline still resolves (no crash, no value)', (
+  testWidgets('"Use my location" resolves to the real device location '
+      'service, and a decline still resolves (no crash, no value)', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
     const deviceService = _DeniedLocationService();
-    LocationService? captured;
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OnboardingGate(
-          locationService: deviceService,
-          builder: (context, resolvedLocationService) {
-            captured = resolvedLocationService;
-            return const Scaffold(body: Text('Spots'));
-          },
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Find my work spot'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Use my location'));
-    await tester.pumpAndSettle();
+    await _pumpGate(tester, deviceLocationService: deviceService);
+    await _completeFlow(tester, choice: 'Use my location');
 
     expect(find.text('Spots'), findsOneWidget);
-    expect(identical(captured, deviceService), isTrue);
-    expect(await captured!.currentLocation(), isNull);
+    expect(identical(_effectiveService(tester), deviceService), isTrue);
+    expect(
+      await _effectiveService(tester).resolve(),
+      const LocationResult.unavailable(LocationFailureReason.denied),
+    );
   });
 }

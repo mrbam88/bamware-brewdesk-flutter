@@ -326,6 +326,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedFileReadError => 'That file couldn\'t be read.';
 
   @override
+  String get savedLoadError =>
+      'Your saved spots couldn\'t load. Pull to retry.';
+
+  @override
   String get savedEmptyTitle => 'Save your next work spot';
 
   @override
