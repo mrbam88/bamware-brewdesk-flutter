@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/glass_surface.dart';
+
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -294,45 +297,50 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ),
             ],
           ),
+          extendBody: true,
           bottomNavigationBar: SafeArea(
             child: Container(
               margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
                   BoxShadow(color: Colors.black26, blurRadius: 14),
                 ],
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _openDirections,
-                      icon: const Icon(Icons.directions_walk_rounded),
-                      label: Text(l10n.venueDetailDirections),
-                    ),
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _openDirections,
+                          icon: const Icon(Icons.directions_walk_rounded),
+                          label: Text(l10n.venueDetailDirections),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        tooltip: widget.savedVenues.contains(_venue.id)
+                            ? l10n.venueDetailRemoveFromSaved
+                            : l10n.venueDetailSaveSpot,
+                        onPressed: () => widget.savedVenues.toggle(_venue.id),
+                        icon: Icon(
+                          widget.savedVenues.contains(_venue.id)
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton.filledTonal(
+                        tooltip: l10n.venueDetailShare,
+                        onPressed: _shareVenue,
+                        icon: const Icon(Icons.ios_share_rounded),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    tooltip: widget.savedVenues.contains(_venue.id)
-                        ? l10n.venueDetailRemoveFromSaved
-                        : l10n.venueDetailSaveSpot,
-                    onPressed: () => widget.savedVenues.toggle(_venue.id),
-                    icon: Icon(
-                      widget.savedVenues.contains(_venue.id)
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton.filledTonal(
-                    tooltip: l10n.venueDetailShare,
-                    onPressed: _shareVenue,
-                    icon: const Icon(Icons.ios_share_rounded),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
