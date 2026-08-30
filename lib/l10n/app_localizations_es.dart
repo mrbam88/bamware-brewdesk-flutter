@@ -330,6 +330,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get savedFileReadError => 'No se pudo leer ese archivo.';
 
   @override
+  String get savedLoadError =>
+      'No se pudieron cargar tus lugares guardados. Desliza para reintentar.';
+
+  @override
   String get savedEmptyTitle => 'Guarda tu próximo lugar de trabajo';
 
   @override

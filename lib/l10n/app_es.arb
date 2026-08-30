@@ -109,6 +109,7 @@
   "savedImportTooltip": "Importar desde Google Takeout",
   "savedImportAction": "Importar",
   "savedFileReadError": "No se pudo leer ese archivo.",
+  "savedLoadError": "No se pudieron cargar tus lugares guardados. Desliza para reintentar.",
   "savedEmptyTitle": "Guarda tu próximo lugar de trabajo",
   "savedEmptyBody": "Los marcadores se quedan en este dispositivo. No se necesita cuenta.",
   "savedBrowseNearby": "Ver cercanos",

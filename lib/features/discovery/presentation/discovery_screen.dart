@@ -5,7 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/core/networking/connectivity_service.dart';
 import 'package:brewdesk/core/location/location_mode.dart';
@@ -33,9 +33,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   // ref.read (a one-time grab in initState-adjacent code is exactly what
   // ref.read is for; ref.watch belongs in build). Tests stopped passing
   // fakes through constructors and override the providers instead.
-  late final SavedVenuesRepository _savedVenues = ref.read(
-    savedVenuesRepositoryProvider,
-  );
   late final DiscoveryViewModel _model = DiscoveryViewModel(
     ref.read(venueRepositoryProvider),
     ref.read(effectiveLocationServiceProvider),
@@ -65,7 +62,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   @override
   void initState() {
     super.initState();
-    _savedVenues.addListener(_savedChanged);
     _searchFocus.addListener(_onFocusChanged);
     _model.load().then((_) {
       if (mounted) _mapController.move(_model.center, 13.5);
@@ -82,7 +78,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   @override
   void dispose() {
-    _savedVenues.removeListener(_savedChanged);
     _searchFocus.removeListener(_onFocusChanged);
     _searchFocus.dispose();
     _searchController.dispose();
@@ -91,8 +86,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     _model.dispose();
     super.dispose();
   }
-
-  void _savedChanged() => setState(() {});
 
   void _onFocusChanged() => setState(() {});
 
@@ -271,9 +264,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     final venue = venues[index];
                     return VenueCard(
                       venue: venue,
-                      saved: _savedVenues.contains(venue.id),
+                      // LEARN: watch (not read) — a save from anywhere, this
+                      // screen included, rebuilds just this subtree. This
+                      // replaces a blank setState listener that redrew the
+                      // whole screen on every toggle.
+                      saved: ref.watch(savedVenueIdsProvider).contains(venue.id),
                       onTap: () => _openVenue(venue),
-                      onSave: () => _savedVenues.toggle(venue.id),
+                      onSave: () =>
+                          ref.read(savedVenueIdsProvider.notifier).toggle(venue.id),
                     );
                   },
                 ),
@@ -453,9 +451,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       final venue = venues[index - 1];
                       return VenueCard(
                         venue: venue,
-                        saved: _savedVenues.contains(venue.id),
+                        saved: ref.watch(savedVenueIdsProvider).contains(venue.id),
                         onTap: () => _openVenue(venue),
-                        onSave: () => _savedVenues.toggle(venue.id),
+                        onSave: () =>
+                          ref.read(savedVenueIdsProvider.notifier).toggle(venue.id),
                       );
                     },
                   ),

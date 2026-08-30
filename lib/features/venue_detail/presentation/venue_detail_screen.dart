@@ -6,7 +6,7 @@ import 'package:brewdesk/core/widgets/glass_surface.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/features/venues/domain/opening_hours_parser.dart';
@@ -35,9 +35,6 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
   // (which venue this screen is about), not a service. Dependencies come
   // from the graph; identity comes from the caller. Same split as an RN
   // screen taking route params while services come from context/hooks.
-  late final SavedVenuesRepository _savedVenues = ref.read(
-    savedVenuesRepositoryProvider,
-  );
   late final VenueDetailViewModel _model = VenueDetailViewModel(
     widget.initialVenue,
     ref.read(venueRepositoryProvider),
@@ -66,18 +63,14 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _savedVenues.addListener(_savedChanged);
     _model.load();
   }
 
   @override
   void dispose() {
-    _savedVenues.removeListener(_savedChanged);
     _model.dispose();
     super.dispose();
   }
-
-  void _savedChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -326,12 +319,13 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
-                        tooltip: _savedVenues.contains(_venue.id)
+                        tooltip: ref.watch(savedVenueIdsProvider).contains(_venue.id)
                             ? l10n.venueDetailRemoveFromSaved
                             : l10n.venueDetailSaveSpot,
-                        onPressed: () => _savedVenues.toggle(_venue.id),
+                        onPressed: () =>
+                            ref.read(savedVenueIdsProvider.notifier).toggle(_venue.id),
                         icon: Icon(
-                          _savedVenues.contains(_venue.id)
+                          ref.watch(savedVenueIdsProvider).contains(_venue.id)
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                         ),

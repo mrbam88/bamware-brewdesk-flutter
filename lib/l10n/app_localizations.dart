@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'That file couldn\'t be read.'**
   String get savedFileReadError;
 
+  /// No description provided for @savedLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved spots couldn\'t load. Pull to retry.'**
+  String get savedLoadError;
+
   /// No description provided for @savedEmptyTitle.
   ///
   /// In en, this message translates to:

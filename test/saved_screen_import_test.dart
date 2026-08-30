@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
-import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/saved/presentation/saved_screen.dart';
-import 'package:brewdesk/features/saved/application/takeout_import_view_model.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,9 +42,6 @@ void main() {
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await SharedPreferences.getInstance();
-      final savedVenues = SavedVenuesRepository(
-        SavedVenuesService(preferences),
-      );
 
       final requestLog = <String>[];
       final client = MockClient((request) async {
@@ -66,28 +62,26 @@ void main() {
       final fixtureBytes = File('test/fixtures/takeout_saved_places.csv')
           .readAsBytesSync();
 
-      final importModel = TakeoutImportViewModel(
-        savedVenues: savedVenues,
-        // Matching runs against this fixed catalog, not a live fetch —
-        // proves the import path itself never touches the network.
-        venuesLoader: () async => [VenueDto.decode(_venueJson)],
-        pickFile: () async => XFile.fromData(
-          fixtureBytes,
-          name: 'takeout_saved_places.csv',
-          mimeType: 'text/csv',
-        ),
-      );
-
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            savedVenuesRepositoryProvider.overrideWithValue(savedVenues),
+            sharedPreferencesProvider.overrideWithValue(preferences),
             venueRepositoryProvider.overrideWithValue(venueRepository),
           ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: SavedScreen(onBrowse: () {}, importModel: importModel),
+            home: SavedScreen(
+              onBrowse: () {},
+              // Matching runs against this fixed catalog, not a live fetch —
+              // proves the import path itself never touches the network.
+              importVenuesLoader: () async => [VenueDto.decode(_venueJson)],
+              importPickFile: () async => XFile.fromData(
+                fixtureBytes,
+                name: 'takeout_saved_places.csv',
+                mimeType: 'text/csv',
+              ),
+            ),
           ),
         ),
       );
@@ -104,7 +98,10 @@ void main() {
       await tester.tap(find.byKey(const Key('import-confirm')));
       await tester.pumpAndSettle();
 
-      expect(savedVenues.contains('spot-usq'), isTrue);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SavedScreen)),
+      );
+      expect(container.read(savedVenueIdsProvider).contains('spot-usq'), isTrue);
       expect(find.text('Union Square Coffee'), findsWidgets);
     },
   );
@@ -114,7 +111,6 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    final savedVenues = SavedVenuesRepository(SavedVenuesService(preferences));
     final client = MockClient((request) async {
       fail('Unexpected network call: ${request.url}');
     });
@@ -126,26 +122,24 @@ void main() {
     final fixtureBytes = File('test/fixtures/takeout_saved_places.csv')
         .readAsBytesSync();
 
-    final importModel = TakeoutImportViewModel(
-      savedVenues: savedVenues,
-      venuesLoader: () async => [VenueDto.decode(_venueJson)],
-      pickFile: () async => XFile.fromData(
-        fixtureBytes,
-        name: 'takeout_saved_places.csv',
-        mimeType: 'text/csv',
-      ),
-    );
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          savedVenuesRepositoryProvider.overrideWithValue(savedVenues),
+          sharedPreferencesProvider.overrideWithValue(preferences),
           venueRepositoryProvider.overrideWithValue(venueRepository),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: SavedScreen(onBrowse: () {}, importModel: importModel),
+          home: SavedScreen(
+            onBrowse: () {},
+            importVenuesLoader: () async => [VenueDto.decode(_venueJson)],
+            importPickFile: () async => XFile.fromData(
+              fixtureBytes,
+              name: 'takeout_saved_places.csv',
+              mimeType: 'text/csv',
+            ),
+          ),
         ),
       ),
     );
@@ -157,6 +151,9 @@ void main() {
     await tester.tap(find.byKey(const Key('import-cancel')));
     await tester.pumpAndSettle();
 
-    expect(savedVenues.contains('spot-usq'), isFalse);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SavedScreen)),
+    );
+    expect(container.read(savedVenueIdsProvider).contains('spot-usq'), isFalse);
   });
 }

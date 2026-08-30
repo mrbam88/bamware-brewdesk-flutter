@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart'
     show VenueSnapshotLoader, loadBundledVenueSnapshot;
 import 'package:brewdesk/features/saved/domain/takeout_import_service.dart';
@@ -24,14 +23,22 @@ Future<XFile?> _defaultPickFile() =>
 /// the confirmed matches. Nothing here makes a network call — matching
 /// reads the same bundled snapshot cold start uses, never the live API.
 class TakeoutImportViewModel extends ChangeNotifier {
+  // LEARN: instead of a repository object, this takes the two capabilities
+  // it needs as functions — the screen wires them to the SavedVenueIds
+  // notifier. Depending on behavior, not on a class, keeps this model
+  // ignorant of Riverpod and trivially fakeable.
   TakeoutImportViewModel({
-    required this._savedVenues,
+    required this._isSaved,
+    required this._toggleSaved,
     VenueSnapshotLoader? venuesLoader,
     Future<XFile?> Function()? pickFile,
   }) : _loadVenues = venuesLoader ?? loadBundledVenueSnapshot,
        _pickFile = pickFile ?? _defaultPickFile;
 
-  final SavedVenuesRepository _savedVenues;
+  /// Callers pass these as `isSaved:` / `toggleSaved:` — Dart's private
+  /// named parameters drop the underscore at the call site.
+  final bool Function(String id) _isSaved;
+  final Future<void> Function(String id) _toggleSaved;
   final VenueSnapshotLoader _loadVenues;
   final Future<XFile?> Function() _pickFile;
 
@@ -80,8 +87,8 @@ class TakeoutImportViewModel extends ChangeNotifier {
   /// Saves every matched venue not already saved, then resets to idle.
   Future<void> confirm() async {
     for (final venue in _matched) {
-      if (!_savedVenues.contains(venue.id)) {
-        await _savedVenues.toggle(venue.id);
+      if (!_isSaved(venue.id)) {
+        await _toggleSaved(venue.id);
       }
     }
     reset();
