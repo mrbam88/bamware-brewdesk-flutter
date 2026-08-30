@@ -109,7 +109,7 @@ class _ScoreTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final color = scoreColor(score);
     return Container(
-      width: 56,
+      width: 64,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
@@ -128,15 +128,20 @@ class _ScoreTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            l10n.workFitCaptionLabel,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            style: TextStyle(
-              color: color,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
+          // FittedBox: "WORK FIT" (and its es translation) must never
+          // truncate to "WORK" — scale down instead of clipping.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n.workFitCaptionLabel,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
             ),
           ),
         ],
