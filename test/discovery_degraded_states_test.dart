@@ -15,6 +15,7 @@ import 'package:brewdesk/data/services/connectivity_service.dart';
 import 'package:brewdesk/data/services/saved_venues_service.dart';
 import 'package:brewdesk/data/services/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
+import 'package:brewdesk/ui/core/branded_loading_view.dart';
 import 'package:brewdesk/ui/features/discovery/discovery_screen.dart';
 import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
 import 'package:flutter/material.dart';
@@ -91,8 +92,12 @@ Future<Widget> _harness({
 
 /// Advances several frames without ever settling to "no more frames" —
 /// flutter_map keeps scheduling work, so `pumpAndSettle` is not safe here.
+///
+/// 20 iterations of 20ms comfortably clears the branded loading state's
+/// ~300ms reduce-flicker floor (brewdesk#33) so tests asserting on
+/// post-load content don't race it.
 Future<void> _pumpDiscovery(WidgetTester tester) async {
-  for (var i = 0; i < 6; i++) {
+  for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 20));
   }
 }
@@ -254,4 +259,38 @@ void main() {
       }, createHttpClient: (context) => _FailFastHttpClient());
     },
   );
+
+  testWidgets('a fast load still shows the branded loading state, held for its '
+      'reduce-flicker floor before the map takes over (brewdesk#33)', (
+    tester,
+  ) async {
+    await HttpOverrides.runZoned(() async {
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'meta': {},
+            'venues': [_venueJson('spot-1')],
+          }),
+          200,
+        ),
+      );
+      await tester.pumpWidget(await _harness(client: client));
+
+      // The mocked response resolves on the next microtask — effectively
+      // instant — but the branded state must still hold for its ~300ms
+      // floor rather than flashing off the moment data arrives.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byKey(const Key('discovery-state-loading')), findsOneWidget);
+      expect(find.byType(BrandedLoadingView), findsOneWidget);
+      expect(find.text('Spot One'), findsNothing);
+
+      // Past the floor: the branded state steps aside for the shelf.
+      await _pumpDiscovery(tester);
+
+      expect(find.byKey(const Key('discovery-state-loading')), findsNothing);
+      expect(find.text('Spot One'), findsWidgets);
+    }, createHttpClient: (context) => _FailFastHttpClient());
+  });
 }

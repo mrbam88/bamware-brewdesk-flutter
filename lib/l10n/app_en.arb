@@ -4,6 +4,9 @@
   "appNameWordmark": "BREWDESK",
   "@appNameWordmark": {"description": "All-caps brand wordmark shown on the onboarding header. Not translated per-locale."},
 
+  "brandedLoadingLabel": "Loading BrewDesk",
+  "@brandedLoadingLabel": {"description": "Accessibility label for the full-bleed branded loading state shown between the native launch surface and first content paint (brewdesk-flutter#33)."},
+
   "cancel": "Cancel",
   "confirm": "Confirm",
 

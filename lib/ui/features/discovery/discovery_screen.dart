@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,6 +12,7 @@ import '../../../domain/models/venue.dart';
 import '../../../domain/use_cases/map_marker_planner.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
+import '../../core/branded_loading_view.dart';
 import '../../core/glass_surface.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
@@ -50,6 +53,20 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   /// focused (brewdesk#28 search-focus list) without any new VM state.
   final FocusNode _searchFocus = FocusNode();
 
+  /// Reduce-flicker floor for the branded loading state (brewdesk#33): once
+  /// shown, it stays on screen at least this long, so a fast/cold-start
+  /// load never flashes it for a single frame.
+  static const _minBrandedLoadingDuration = Duration(milliseconds: 300);
+
+  bool _showBrandedLoading = false;
+  bool _brandedLoadingMinDurationElapsed = true;
+  Timer? _brandedLoadingTimer;
+
+  bool get _wantsBrandedLoading =>
+      _model.errorKind == null &&
+      _model.loading &&
+      _model.visibleVenues.isEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +75,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     _model.load().then((_) {
       if (mounted) _mapController.move(_model.center, 13.5);
     });
+    // The synchronous prefix of load() above already flipped
+    // `_model.loading` to true, so this reflects the real initial state —
+    // assigned directly (not via setState) since the first build hasn't
+    // happened yet. The listener below is added after, so it only reacts
+    // to changes from here on.
+    _showBrandedLoading = _wantsBrandedLoading;
+    if (_showBrandedLoading) _startBrandedLoadingHold();
+    _model.addListener(_syncBrandedLoading);
   }
 
   @override
@@ -66,6 +91,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     _searchFocus.removeListener(_onFocusChanged);
     _searchFocus.dispose();
     _searchController.dispose();
+    _model.removeListener(_syncBrandedLoading);
+    _brandedLoadingTimer?.cancel();
     _model.dispose();
     super.dispose();
   }
@@ -73,6 +100,38 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   void _savedChanged() => setState(() {});
 
   void _onFocusChanged() => setState(() {});
+
+  /// Keeps [_showBrandedLoading] in sync with the model, holding it visible
+  /// for [_minBrandedLoadingDuration] once shown — see the class doc above.
+  void _syncBrandedLoading() {
+    final wants = _wantsBrandedLoading;
+    if (wants == _showBrandedLoading) return;
+    if (wants) {
+      _startBrandedLoadingHold();
+      setState(() => _showBrandedLoading = true);
+    } else if (_brandedLoadingMinDurationElapsed) {
+      setState(() => _showBrandedLoading = false);
+    }
+    // else: still within the minimum-display window — the pending timer
+    // started by [_startBrandedLoadingHold] turns it off once the floor
+    // elapses (if the model still doesn't want it shown by then).
+  }
+
+  /// Arms the reduce-flicker floor: [_brandedLoadingMinDurationElapsed]
+  /// flips true no sooner than [_minBrandedLoadingDuration] after the
+  /// branded loading state appears, whether that's the very first frame
+  /// (called directly from [initState]) or a later reappearance (called
+  /// from [_syncBrandedLoading]).
+  void _startBrandedLoadingHold() {
+    _brandedLoadingMinDurationElapsed = false;
+    _brandedLoadingTimer?.cancel();
+    _brandedLoadingTimer = Timer(_minBrandedLoadingDuration, () {
+      _brandedLoadingMinDurationElapsed = true;
+      if (mounted && !_wantsBrandedLoading) {
+        setState(() => _showBrandedLoading = false);
+      }
+    });
+  }
 
   void _cancelSearch() {
     _searchController.clear();
@@ -152,10 +211,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                           onRetry: _model.load,
                         ),
                       )
-                    else if (_model.loading && venues.isEmpty)
-                      const Center(
-                        key: Key('discovery-state-loading'),
-                        child: CircularProgressIndicator(),
+                    else if (_showBrandedLoading)
+                      const Positioned.fill(
+                        child: BrandedLoadingView(
+                          key: Key('discovery-state-loading'),
+                        ),
                       )
                     else
                       _venueShelf(l10n, venues),
