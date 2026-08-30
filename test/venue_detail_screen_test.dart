@@ -138,7 +138,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Curated · 80% confidence · updated 2026-08-01'),
+        // brewdesk#28: dates humanize ("Aug 1" via intl DateFormat) instead
+        // of showing the raw ISO date.
+        find.text('Curated · 80% confidence · updated Aug 1'),
         findsOneWidget, // the card-level stamp only
       );
       expect(find.byKey(const Key('claim-provenance-line')), findsNothing);
@@ -159,15 +161,16 @@ void main() {
     await tester.pumpWidget(await _harness(venue));
     await tester.pumpAndSettle();
 
-    // Card stamp is still the 3-way agreement (curated · 80% · 2026-08-01).
+    // Card stamp is still the 3-way agreement (curated · 80% · Aug 1), date
+    // humanized (brewdesk#28).
     expect(
-      find.text('Curated · 80% confidence · updated 2026-08-01'),
+      find.text('Curated · 80% confidence · updated Aug 1'),
       findsOneWidget,
     );
     // Only the disagreeing (noise) row prints its own line.
     expect(find.byKey(const Key('claim-provenance-line')), findsOneWidget);
     expect(
-      find.text('Unverified estimate · 30% confidence · updated 2026-07-01'),
+      find.text('Unverified estimate · 30% confidence · updated Jul 1'),
       findsOneWidget,
     );
   });

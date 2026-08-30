@@ -43,11 +43,17 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     connectivity: widget.connectivity ?? const ConnectivityService(),
   );
   final MapController _mapController = MapController();
+  final TextEditingController _searchController = TextEditingController();
+
+  /// Backs the search field so map/header code can tell whether it's
+  /// focused (brewdesk#28 search-focus list) without any new VM state.
+  final FocusNode _searchFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     widget.savedVenues.addListener(_savedChanged);
+    _searchFocus.addListener(_onFocusChanged);
     _model.load().then((_) {
       if (mounted) _mapController.move(_model.center, 13.5);
     });
@@ -56,11 +62,22 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   @override
   void dispose() {
     widget.savedVenues.removeListener(_savedChanged);
+    _searchFocus.removeListener(_onFocusChanged);
+    _searchFocus.dispose();
+    _searchController.dispose();
     _model.dispose();
     super.dispose();
   }
 
   void _savedChanged() => setState(() {});
+
+  void _onFocusChanged() => setState(() {});
+
+  void _cancelSearch() {
+    _searchController.clear();
+    _model.setQuery('');
+    _searchFocus.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,153 +86,248 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       listenable: _model,
       builder: (context, _) {
         final venues = _model.visibleVenues;
+        final searching = _searchFocus.hasFocus;
         return Scaffold(
-          body: Stack(
-            children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _model.center,
-                  initialZoom: 13.5,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'io.bamware.brewdesk',
-                  ),
-                  MarkerLayer(
-                    markers: MapMarkerPlanner.plan(venues)
-                        .map(
-                          (venue) => Marker(
-                            point: LatLng(venue.lat, venue.lng),
-                            width: 52,
-                            height: 42,
-                            child: _MapPin(
-                              venue: venue,
-                              onTap: () => _openVenue(venue),
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                  RichAttributionWidget(
-                    attributions: [
-                      TextSourceAttribution('OpenStreetMap contributors'),
-                    ],
-                  ),
-                ],
-              ),
-              SafeArea(
-                child: _searchAndFilters(
-                  context,
-                  l10n,
-                  venues.length,
-                  _model.totalVenues,
-                ),
-              ),
-              if (_model.errorKind != null)
-                Center(
-                  child: _ErrorCard(
-                    key: Key(
-                      _model.errorKind == DiscoveryErrorKind.offline
-                          ? 'discovery-state-offline'
-                          : 'discovery-state-engine-error',
+          body: searching
+              ? _searchFocusView(l10n, venues)
+              : Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: _model.center,
+                        initialZoom: 13.5,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'io.bamware.brewdesk',
+                        ),
+                        MarkerLayer(
+                          markers: MapMarkerPlanner.plan(venues)
+                              .map(
+                                (venue) => Marker(
+                                  point: LatLng(venue.lat, venue.lng),
+                                  width: 40,
+                                  height: 40,
+                                  child: _MapPin(
+                                    venue: venue,
+                                    onTap: () => _openVenue(venue),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                        RichAttributionWidget(
+                          attributions: [
+                            TextSourceAttribution('OpenStreetMap contributors'),
+                          ],
+                        ),
+                      ],
                     ),
-                    message:
-                        _model.error ??
-                        (_model.errorKind == DiscoveryErrorKind.offline
-                            ? l10n.discoveryErrorOffline
-                            : l10n.discoveryErrorGeneric),
-                    kind: _model.errorKind ?? DiscoveryErrorKind.engine,
-                    onRetry: _model.load,
+                    SafeArea(
+                      child: _searchAndFilters(
+                        context,
+                        l10n,
+                        venues.length,
+                        _model.totalVenues,
+                      ),
+                    ),
+                    if (_model.errorKind != null)
+                      Center(
+                        child: _ErrorCard(
+                          key: Key(
+                            _model.errorKind == DiscoveryErrorKind.offline
+                                ? 'discovery-state-offline'
+                                : 'discovery-state-engine-error',
+                          ),
+                          message:
+                              _model.error ??
+                              (_model.errorKind == DiscoveryErrorKind.offline
+                                  ? l10n.discoveryErrorOffline
+                                  : l10n.discoveryErrorGeneric),
+                          kind: _model.errorKind ?? DiscoveryErrorKind.engine,
+                          onRetry: _model.load,
+                        ),
+                      )
+                    else if (_model.loading && venues.isEmpty)
+                      const Center(
+                        key: Key('discovery-state-loading'),
+                        child: CircularProgressIndicator(),
+                      )
+                    else
+                      _venueShelf(l10n, venues),
+                  ],
+                ),
+          floatingActionButton: searching
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 116),
+                  child: FloatingActionButton.small(
+                    tooltip: l10n.discoveryUseMyLocationTooltip,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    foregroundColor: AppColors.green,
+                    onPressed: () async {
+                      await _model.load();
+                      _mapController.move(_model.center, 13.5);
+                    },
+                    child: const Icon(Icons.my_location_rounded),
                   ),
-                )
-              else if (_model.loading && venues.isEmpty)
-                const Center(
-                  key: Key('discovery-state-loading'),
-                  child: CircularProgressIndicator(),
-                )
-              else
-                _venueShelf(l10n, venues),
-            ],
-          ),
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 116),
-            child: FloatingActionButton.small(
-              tooltip: l10n.discoveryUseMyLocationTooltip,
-              onPressed: () async {
-                await _model.load();
-                _mapController.move(_model.center, 13.5);
-              },
-              child: const Icon(Icons.my_location_rounded),
-            ),
-          ),
+                ),
         );
       },
     );
   }
 
+  /// UI3 search-focus mode (brewdesk#28, mockup 02): the map gives way to a
+  /// vertical result list. `Scaffold.resizeToAvoidBottomInset` (the default)
+  /// already shrinks this column above the keyboard — no manual inset math
+  /// needed.
+  Widget _searchFocusView(AppLocalizations l10n, List<Venue> venues) {
+    return Column(
+      children: [
+        SafeArea(
+          bottom: false,
+          child: _searchAndFilters(
+            context,
+            l10n,
+            venues.length,
+            _model.totalVenues,
+          ),
+        ),
+        Expanded(
+          child: venues.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      l10n.discoveryEmptyView,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  key: const Key('search-results-list'),
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
+                  itemCount: venues.length,
+                  itemBuilder: (context, index) {
+                    final venue = venues[index];
+                    return VenueCard(
+                      venue: venue,
+                      saved: widget.savedVenues.contains(venue.id),
+                      onTap: () => _openVenue(venue),
+                      onSave: () => widget.savedVenues.toggle(venue.id),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// One header card (ui-review parity with iOS `CafeMapScreen.searchHeader`):
+  /// search field + trailing control (filter button, or Cancel while
+  /// focused) on top, an in-card count row underneath. The baseline banner
+  /// docks directly beneath the card as a sibling row.
   Widget _searchAndFilters(
     BuildContext context,
     AppLocalizations l10n,
     int visibleCount,
     int totalCount,
   ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-          child: Material(
+    final theme = Theme.of(context);
+    final searching = _searchFocus.hasFocus;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
             elevation: 5,
             shadowColor: Colors.black26,
-            borderRadius: BorderRadius.circular(22),
-            child: TextField(
-              onChanged: _model.setQuery,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: l10n.discoverySearchHint,
-                prefixIcon: const Icon(Icons.search_rounded),
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocus,
+                          onChanged: _model.setQuery,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: l10n.discoverySearchHint,
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(999),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (searching)
+                        TextButton(
+                          key: const Key('search-cancel'),
+                          onPressed: _cancelSearch,
+                          child: Text(l10n.cancel),
+                        )
+                      else
+                        WorkFitFilterButton(model: _model),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.discoveryVisibleOfTotal(
+                            visibleCount,
+                            totalCount,
+                          ),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        l10n.discoveryScoresShowWorkFit,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 10, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.discoveryVisibleOfTotal(visibleCount, totalCount),
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+          if (_model.coverage == CoverageLevel.baseline)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.sand,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                l10n.discoveryBaselineBanner,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              WorkFitFilterButton(model: _model),
-            ],
-          ),
-        ),
-        if (_model.coverage == CoverageLevel.baseline)
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.sand,
-              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              l10n.discoveryBaselineBanner,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -239,7 +351,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   controller: controller,
                   children: [
                     const SizedBox(height: 12),
-                    _ShelfHandle(l10n: l10n),
+                    _ShelfHandle(l10n: l10n, count: venues.length),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                       child: Column(
@@ -266,7 +378,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   controller: controller,
                   itemCount: venues.length + 1,
                   itemBuilder: (context, index) {
-                    if (index == 0) return _ShelfHandle(l10n: l10n);
+                    if (index == 0) {
+                      return _ShelfHandle(l10n: l10n, count: venues.length);
+                    }
                     final venue = venues[index - 1];
                     return VenueCard(
                       venue: venue,
@@ -294,6 +408,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 }
 
+/// Circular ~40dp badge: tier color fill, 2dp white ring, centered bold
+/// score (mockup 01 / iOS `MapAnnotationViews.VenueScorePin`).
 class _MapPin extends StatelessWidget {
   const _MapPin({required this.venue, required this.onTap});
   final Venue venue;
@@ -306,12 +422,12 @@ class _MapPin extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scoreColor(venue.workScore),
-          borderRadius: BorderRadius.circular(13),
+          shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: const [
             BoxShadow(
               color: Colors.black26,
-              blurRadius: 5,
+              blurRadius: 4,
               offset: Offset(0, 2),
             ),
           ],
@@ -321,6 +437,7 @@ class _MapPin extends StatelessWidget {
             venue.workScore.toString(),
             style: const TextStyle(
               color: Colors.white,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -330,13 +447,17 @@ class _MapPin extends StatelessWidget {
   }
 }
 
+/// Shelf header: "N spots in view" left, "drag for map" hint right (mockup
+/// 01) — replaces the old centered "Best nearby" title.
 class _ShelfHandle extends StatelessWidget {
-  const _ShelfHandle({required this.l10n});
+  const _ShelfHandle({required this.l10n, required this.count});
 
   final AppLocalizations l10n;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         const SizedBox(height: 9),
@@ -348,12 +469,29 @@ class _ShelfHandle extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(height: 7),
-        Text(
-          l10n.discoveryBestNearby,
-          style: Theme.of(context).textTheme.titleSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.discoveryShelfSpotsInView(count),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                l10n.discoveryDragForMapHint,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: 4),
       ],
     );
   }

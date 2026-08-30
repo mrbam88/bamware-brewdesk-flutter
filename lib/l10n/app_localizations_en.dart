@@ -83,6 +83,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get whatNumbersMean => 'What the numbers mean';
 
   @override
+  String get workFitCaptionLabel => 'WORK FIT';
+
+  @override
   String get discoveryUseMyLocationTooltip => 'Use my location';
 
   @override
@@ -104,7 +107,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoveryClearFilters => 'Clear filters';
 
   @override
-  String get discoveryBestNearby => 'Best nearby';
+  String get discoveryScoresShowWorkFit => 'Scores show Work Fit';
+
+  @override
+  String discoveryShelfSpotsInView(int count) {
+    return '$count spots in view';
+  }
+
+  @override
+  String get discoveryDragForMapHint => 'Drag for map';
 
   @override
   String get discoveryTryAgain => 'Try again';
@@ -300,6 +311,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedImportTooltip => 'Import from Google Takeout';
 
   @override
+  String get savedImportAction => 'Import';
+
+  @override
   String get savedFileReadError => 'That file couldn\'t be read.';
 
   @override
@@ -371,10 +385,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueDetailShare => 'Share';
 
   @override
-  String get venueCardSeatingLabel => 'seating';
-
-  @override
-  String venueCardClaimUnknown(String label) {
-    return '$label unknown';
+  String venueCardProvenance(String date, String source) {
+    return 'Updated $date · $source';
   }
 }

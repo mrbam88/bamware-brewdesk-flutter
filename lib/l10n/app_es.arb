@@ -13,6 +13,7 @@
 
   "anyOption": "Cualquiera",
   "dotJoin": "{a} · {b}",
+  "workFitCaptionLabel": "AJUSTE LABORAL",
 
   "filtersTooltip": "Filtros",
   "filtersLaptopFriendly": "Apto para portátiles",
@@ -35,7 +36,9 @@
   "discoveryBaselineBanner": "Base OSM · los detalles aún se están investigando",
   "discoveryEmptyView": "No hay lugares en esta vista.",
   "discoveryClearFilters": "Quitar filtros",
-  "discoveryBestNearby": "Mejores cerca de ti",
+  "discoveryScoresShowWorkFit": "Las puntuaciones muestran el ajuste laboral",
+  "discoveryShelfSpotsInView": "{count} lugares en esta vista",
+  "discoveryDragForMapHint": "Arrastra para ver el mapa",
   "discoveryTryAgain": "Reintentar",
   "discoveryErrorOffline": "Estás sin conexión. Lo intentaremos de nuevo cuando vuelvas a estar en línea.",
   "discoveryErrorGeneric": "No pudimos conectar con el servicio de lugares. Comprueba tu conexión e inténtalo de nuevo.",
@@ -100,6 +103,7 @@
 
   "savedTitle": "Guardados",
   "savedImportTooltip": "Importar desde Google Takeout",
+  "savedImportAction": "Importar",
   "savedFileReadError": "No se pudo leer ese archivo.",
   "savedEmptyTitle": "Guarda tu próximo lugar de trabajo",
   "savedEmptyBody": "Los marcadores se quedan en este dispositivo. No se necesita cuenta.",
@@ -124,6 +128,5 @@
   "venueDetailSaveSpot": "Guardar lugar",
   "venueDetailShare": "Compartir",
 
-  "venueCardSeatingLabel": "asientos",
-  "venueCardClaimUnknown": "{label} desconocido"
+  "venueCardProvenance": "Actualizado {date} · {source}"
 }

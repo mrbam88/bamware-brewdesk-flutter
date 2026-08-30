@@ -56,6 +56,9 @@ void main() {
     await tester.tap(find.byTooltip('Filters'));
     await tester.pumpAndSettle();
 
+    // No filters active: the Reset row is absent entirely, not just disabled.
+    expect(find.byKey(const Key('filters-reset')), findsNothing);
+
     // Turn on Laptop friendly and pick a Wi-Fi floor: two active filters.
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
@@ -72,7 +75,9 @@ void main() {
     expect(model.activeFilterCount, 0);
     expect(model.laptopFriendly, isFalse);
     expect(model.minWifi, isNull);
-    expect(find.textContaining('Reset 0 filters'), findsOneWidget);
+    // brewdesk#28: the Reset row disappears entirely once there is nothing
+    // left to reset, rather than sitting there disabled.
+    expect(find.byKey(const Key('filters-reset')), findsNothing);
     expect(find.text('2'), findsNothing);
   });
 }

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../data/repositories/saved_venues_repository.dart';
 import '../../../data/repositories/venue_repository.dart';
 import '../../../domain/models/venue.dart';
+import '../../../domain/use_cases/opening_hours_parser.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/venue_widgets.dart';
 import 'venue_detail_view_model.dart';
@@ -78,6 +79,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
       builder: (context, _) {
         final theme = Theme.of(context);
         final l10n = AppLocalizations.of(context)!;
+        final locale = Localizations.localeOf(context);
         return Scaffold(
           appBar: AppBar(title: Text(_venue.name)),
           body: ListView(
@@ -93,25 +95,23 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // The app bar already owns the name (brewdesk#28) — this
+                    // card leads with the type/neighborhood line instead of
+                    // repeating it.
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
-                            _venue.name,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
+                            '${_venue.typeLabel} · ${_venue.neighborhood} · ${_venue.borough}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        ScoreBadge(score: _venue.workScore),
+                        ScoreBadgeWithCaption(score: _venue.workScore),
                       ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '${_venue.typeLabel} · ${_venue.neighborhood} · ${_venue.borough}',
-                      style: theme.textTheme.titleSmall,
                     ),
                     if (_venue.address case final address?) ...[
                       const SizedBox(height: 4),
@@ -197,7 +197,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               _SectionCard(
                 title: l10n.venueDetailWorkabilityTitle,
                 icon: Icons.verified_outlined,
-                subtitle: _cardStamp.provenanceLine,
+                subtitle: humanProvenanceLine(_cardStamp, locale),
                 children: [
                   _ClaimRow(
                     label: l10n.filtersWifiTitle,
@@ -249,13 +249,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   if (_venue.lastVerified case final date?) ...[
                     const SizedBox(height: 8),
                     Text(
-                      l10n.venueDetailUpdated(date),
+                      l10n.venueDetailUpdated(humanizeDate(date, locale)),
                       style: theme.textTheme.labelMedium,
                     ),
                   ],
                   if (_venue.hoursRaw case final hours?) ...[
                     const Divider(height: 24),
-                    Text(hours),
+                    _HoursBlock(raw: hours, locale: locale),
                   ],
                   if (_venue.website case final website?) ...[
                     const Divider(height: 24),
@@ -464,7 +464,7 @@ class _ClaimRow extends StatelessWidget {
               ),
               if (!_agreesWithCardStamp)
                 Text(
-                  claim.provenanceLine,
+                  humanProvenanceLine(claim, Localizations.localeOf(context)),
                   key: const Key('claim-provenance-line'),
                   textAlign: TextAlign.end,
                   style: Theme.of(context).textTheme.labelSmall,
@@ -473,6 +473,48 @@ class _ClaimRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Business hours (brewdesk#28): structured per-rule rows when
+/// [OpeningHoursParser] recognizes the string, otherwise the raw string
+/// unchanged — a wrong open/closed claim is worse than no claim, so any
+/// parse doubt falls back rather than guessing.
+class _HoursBlock extends StatelessWidget {
+  const _HoursBlock({required this.raw, required this.locale});
+
+  final String raw;
+  final Locale locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = OpeningHoursParser.parse(raw, locale);
+    if (rows == null) {
+      return Text(raw, key: const Key('business-hours-raw'));
+    }
+    return Column(
+      key: const Key('business-hours-structured'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 92,
+                  child: Text(
+                    row.dayLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Expanded(child: Text(row.timeLabel)),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
