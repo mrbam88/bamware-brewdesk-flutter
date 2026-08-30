@@ -56,10 +56,14 @@ class ScoreBadge extends StatelessWidget {
       ),
       child: Text(
         score.toString(),
+        // Score digits are a JetBrains Mono role (flutter#6) — numbers and
+        // eyebrows share the label face app-wide.
         style: TextStyle(
           color: Colors.white,
           fontSize: compact ? 13 : 16,
-          fontWeight: FontWeight.w800,
+          fontFamily: AppFonts.label,
+          fontWeight: FontWeight.w700,
+          fontVariations: AppFonts.wght(700),
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
@@ -126,7 +130,9 @@ class _ScoreTile extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontFamily: AppFonts.label,
+              fontWeight: FontWeight.w700,
+              fontVariations: AppFonts.wght(700),
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -142,7 +148,9 @@ class _ScoreTile extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 9,
-                fontWeight: FontWeight.w800,
+                fontFamily: AppFonts.label,
+                fontWeight: FontWeight.w700,
+                fontVariations: AppFonts.wght(700),
                 letterSpacing: 0.4,
               ),
             ),

@@ -376,6 +376,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                               decoration: InputDecoration(
                                 hintText: l10n.discoverySearchHint,
                                 prefixIcon: const Icon(Icons.search_rounded),
+                                // Compact chrome (flutter#6): the field sits
+                                // at ~44dp like the native header, so the
+                                // map stays the dominant surface.
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(999),
                                   borderSide: BorderSide.none,
@@ -533,8 +541,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   }
 }
 
-/// Circular ~40dp badge: tier color fill, 2dp white ring, centered bold
-/// score (mockup 01 / iOS `MapAnnotationViews.VenueScorePin`).
+/// Score-forward solid capsule (flutter#6, native
+/// `MapAnnotationViews.VenueScorePin` parity): tier fill, white ring, mono
+/// digits. Deliberately composite-cheap — solid fill, no shadow, no blur —
+/// because the map repositions every pin on every pan frame (the native
+/// brewdesk#54 stutter lesson). The marker frame is the tap target; the
+/// capsule floats centered inside it.
 class _MapPin extends StatelessWidget {
   const _MapPin({required this.venue, required this.onTap});
   final Venue venue;
@@ -543,27 +555,29 @@ class _MapPin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scoreColor(venue.workScore),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            venue.workScore.toString(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 44),
+          height: 28,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: scoreColor(venue.workScore),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white, width: 1.5),
+          ),
+          child: Center(
+            child: Text(
+              venue.workScore.toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontFamily: AppFonts.label,
+                fontWeight: FontWeight.w700,
+                fontVariations: AppFonts.wght(700),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
         ),
