@@ -7,7 +7,6 @@ import 'package:brewdesk/core/location/union_square_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Fails the test if it is ever asked for a location — stands in for the
@@ -17,7 +16,7 @@ class _ThrowingLocationService extends LocationService {
   const _ThrowingLocationService();
 
   @override
-  Future<LatLng?> currentLocation() {
+  Future<LocationResult> resolve() {
     fail('the real device LocationService must not be called here');
   }
 }
@@ -27,7 +26,8 @@ class _DeniedLocationService extends LocationService {
   const _DeniedLocationService();
 
   @override
-  Future<LatLng?> currentLocation() async => null;
+  Future<LocationResult> resolve() async =>
+      const LocationResult.unavailable(LocationFailureReason.denied);
 }
 
 Future<void> _pumpGate(
@@ -108,8 +108,8 @@ void main() {
       final resolved = _effectiveService(tester);
       expect(resolved, isA<UnionSquareLocationService>());
       expect(
-        await resolved.currentLocation(),
-        UnionSquareLocationService.unionSquare,
+        await resolved.resolve(),
+        const LocationResult.acquired(UnionSquareLocationService.unionSquare),
       );
     },
   );
@@ -125,6 +125,9 @@ void main() {
 
     expect(find.text('Spots'), findsOneWidget);
     expect(identical(_effectiveService(tester), deviceService), isTrue);
-    expect(await _effectiveService(tester).currentLocation(), isNull);
+    expect(
+      await _effectiveService(tester).resolve(),
+      const LocationResult.unavailable(LocationFailureReason.denied),
+    );
   });
 }

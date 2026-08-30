@@ -12,5 +12,6 @@ class UnionSquareLocationService extends LocationService {
   static const unionSquare = LatLng(40.7359, -73.9911);
 
   @override
-  Future<LatLng?> currentLocation() async => unionSquare;
+  Future<LocationResult> resolve() async =>
+      const LocationResult.acquired(unionSquare);
 }

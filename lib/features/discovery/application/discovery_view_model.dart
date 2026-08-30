@@ -125,7 +125,12 @@ class DiscoveryViewModel extends ChangeNotifier {
     notifyListeners();
 
     if (useDeviceLocation) {
-      _center = await _locationService.currentLocation() ?? manhattan;
+      _center = switch (await _locationService.resolve()) {
+        LocationAcquired(:final position) => position,
+        // The bloc phase surfaces the reason; the interim VM keeps the old
+        // Manhattan fallback behavior.
+        LocationUnavailable() => manhattan,
+      };
     }
     try {
       final result = await _repository.search(

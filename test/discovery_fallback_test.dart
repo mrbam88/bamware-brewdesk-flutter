@@ -13,13 +13,13 @@ import 'package:brewdesk/features/discovery/application/discovery_view_model.dar
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:latlong2/latlong.dart';
 
 class _DeniedLocationService extends LocationService {
   const _DeniedLocationService();
 
   @override
-  Future<LatLng?> currentLocation() async => null;
+  Future<LocationResult> resolve() async =>
+      const LocationResult.unavailable(LocationFailureReason.denied);
 }
 
 const _searchResponse = '''
