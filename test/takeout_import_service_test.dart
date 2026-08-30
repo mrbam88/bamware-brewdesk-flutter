@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:brewdesk/features/saved/domain/takeout_import_service.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +10,7 @@ Venue _venue({
   required String name,
   required double lat,
   required double lng,
-}) => Venue.fromJson({
+}) => VenueDto.decode({
   'id': id,
   'name': name,
   'lat': lat,

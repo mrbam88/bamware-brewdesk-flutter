@@ -9,7 +9,7 @@ import 'dart:io';
 import 'package:brewdesk/core/di/app_providers.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
-import 'package:brewdesk/features/venues/domain/venue.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -92,7 +92,7 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: VenueDetailScreen(initialVenue: Venue.fromJson(_venueJson)),
+              home: VenueDetailScreen(initialVenue: VenueDto.decode(_venueJson)),
             ),
           ),
         );

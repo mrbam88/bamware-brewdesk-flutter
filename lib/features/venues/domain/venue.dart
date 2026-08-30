@@ -1,32 +1,37 @@
-class Claim {
-  const Claim({
-    required this.value,
-    required this.source,
-    this.detail,
-    this.observedAt,
-    this.confidence = 0,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String value;
-  final String source;
-  final String? detail;
-  final String? observedAt;
+part 'venue.freezed.dart';
 
-  /// 0.0–1.0, per the engine contract (`schema.ts` `Claim.confidence`).
-  /// Defaults to 0 when the payload omits it, so older/partial responses
-  /// still decode instead of throwing.
-  final double confidence;
+// LEARN: the domain model is now freezed — immutable, with VALUE equality
+// and copyWith generated. Value equality is not cosmetic: the Bloc/Riverpod
+// layers decide "did state change?" by ==, so two Venue instances decoded
+// from identical JSON must compare equal or every rebuild optimization
+// breaks. RN analogy: what Immer/Redux Toolkit give a reducer, plus the
+// deep-equality you wish React.memo had by default.
+//
+// Deliberately NO fromJson here. The domain layer doesn't know JSON exists;
+// decoding (and the engine's lenient-contract rules) lives in the data
+// layer's DTOs — see data/venue_dtos.dart. Domain has no Flutter imports
+// either, so all of this is testable as plain Dart.
 
-  factory Claim.fromJson(Object? raw) {
-    final json = raw is Map<String, dynamic> ? raw : <String, dynamic>{};
-    return Claim(
-      value: json['value'] as String? ?? 'unknown',
-      source: json['source'] as String? ?? 'unknown',
-      detail: json['detail'] as String?,
-      observedAt: json['observedAt'] as String?,
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
-    );
-  }
+/// One venue fact with provenance: what the engine believes, where that
+/// belief came from, and how confident it is. Unknown and estimated facts
+/// must stay visibly honest (CONTEXT.md).
+@freezed
+abstract class Claim with _$Claim {
+  const Claim._();
+
+  const factory Claim({
+    required String value,
+    required String source,
+    String? detail,
+    String? observedAt,
+    @Default(0) double confidence,
+  }) = _Claim;
+
+  /// The all-defaults claim a payload produces when it omits the attribute
+  /// entirely — "we know nothing, and we say so".
+  static const unknown = Claim(value: 'unknown', source: 'unknown');
 
   int get confidencePercent => (confidence * 100).round();
 
@@ -76,34 +81,18 @@ class Claim {
   };
 }
 
-class VenueAttributes {
-  const VenueAttributes({
-    required this.wifi,
-    required this.outlets,
-    required this.laptopPolicy,
-    required this.noise,
-    required this.seating,
-    required this.outdoorSeating,
-  });
+@freezed
+abstract class VenueAttributes with _$VenueAttributes {
+  const VenueAttributes._();
 
-  final Claim wifi;
-  final Claim outlets;
-  final Claim laptopPolicy;
-  final Claim noise;
-  final Claim seating;
-  final Claim outdoorSeating;
-
-  factory VenueAttributes.fromJson(Object? raw) {
-    final json = raw is Map<String, dynamic> ? raw : <String, dynamic>{};
-    return VenueAttributes(
-      wifi: Claim.fromJson(json['wifi']),
-      outlets: Claim.fromJson(json['outlets']),
-      laptopPolicy: Claim.fromJson(json['laptopPolicy']),
-      noise: Claim.fromJson(json['noise']),
-      seating: Claim.fromJson(json['seating']),
-      outdoorSeating: Claim.fromJson(json['outdoorSeating']),
-    );
-  }
+  const factory VenueAttributes({
+    @Default(Claim.unknown) Claim wifi,
+    @Default(Claim.unknown) Claim outlets,
+    @Default(Claim.unknown) Claim laptopPolicy,
+    @Default(Claim.unknown) Claim noise,
+    @Default(Claim.unknown) Claim seating,
+    @Default(Claim.unknown) Claim outdoorSeating,
+  }) = _VenueAttributes;
 
   /// The Workability card's single provenance stamp (brewdesk#119): the
   /// claim (source, confidence, date) shared by the most of wifi / outlets /
@@ -133,66 +122,34 @@ class VenueAttributes {
   }
 }
 
-class Venue {
-  const Venue({
-    required this.id,
-    required this.name,
-    required this.lat,
-    required this.lng,
-    required this.neighborhood,
-    required this.borough,
-    required this.venueType,
-    required this.attributes,
-    required this.vibeTags,
-    required this.workScore,
-    required this.tier,
-    this.address,
-    this.hoursRaw,
-    this.distanceM,
-    this.website,
-    this.phone,
-    this.lastVerified,
-  });
+// NOTE: makeCollectionsUnmodifiable is off because freezed 3.2.3 emits a
+// `final` constructor parameter for wrapped collections, which Dart 3.13
+// rejects (fixed in freezed 4, blocked here by custom_lint's analyzer
+// ceiling — see the deps commit). The lists passed in are already built
+// with toList(growable: false).
+@Freezed(makeCollectionsUnmodifiable: false)
+abstract class Venue with _$Venue {
+  const Venue._();
 
-  final String id;
-  final String name;
-  final double lat;
-  final double lng;
-  final String? address;
-  final String neighborhood;
-  final String borough;
-  final String? hoursRaw;
-  final String venueType;
-  final VenueAttributes attributes;
-  final List<String> vibeTags;
-  final int workScore;
-  final int? distanceM;
-  final String tier;
-  final String? website;
-  final String? phone;
-  final String? lastVerified;
-
-  factory Venue.fromJson(Map<String, dynamic> json) {
-    return Venue(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? 'Unnamed spot',
-      lat: (json['lat'] as num).toDouble(),
-      lng: (json['lng'] as num).toDouble(),
-      address: json['address'] as String?,
-      neighborhood: json['neighborhood'] as String? ?? '',
-      borough: json['borough'] as String? ?? '',
-      hoursRaw: json['hoursRaw'] as String?,
-      venueType: json['venueType'] as String? ?? 'cafe',
-      attributes: VenueAttributes.fromJson(json['attributes']),
-      vibeTags: (json['vibeTags'] as List<dynamic>? ?? const []).cast<String>(),
-      workScore: (json['workScore'] as num? ?? 0).round(),
-      distanceM: (json['distance_m'] as num?)?.round(),
-      tier: json['tier'] as String? ?? 'researched',
-      website: json['website'] as String?,
-      phone: json['phone'] as String?,
-      lastVerified: json['lastVerified'] as String?,
-    );
-  }
+  const factory Venue({
+    required String id,
+    required String name,
+    required double lat,
+    required double lng,
+    required String neighborhood,
+    required String borough,
+    required String venueType,
+    required VenueAttributes attributes,
+    required List<String> vibeTags,
+    required int workScore,
+    required String tier,
+    String? address,
+    String? hoursRaw,
+    int? distanceM,
+    String? website,
+    String? phone,
+    String? lastVerified,
+  }) = _Venue;
 
   String get typeLabel => switch (venueType) {
     'cafe' => 'Cafe',
@@ -210,26 +167,18 @@ class Venue {
   }
 }
 
-class VenuePhoto {
-  const VenuePhoto({required this.url, this.attribution});
-
-  final String url;
-  final String? attribution;
-
-  factory VenuePhoto.fromJson(Map<String, dynamic> json, Uri baseUri) {
-    final rawUrl = json['url'] as String;
-    return VenuePhoto(
-      url: baseUri.resolve(rawUrl).toString(),
-      attribution: (json['contributorName'] ?? json['attribution']) as String?,
-    );
-  }
+@freezed
+abstract class VenuePhoto with _$VenuePhoto {
+  const factory VenuePhoto({required String url, String? attribution}) =
+      _VenuePhoto;
 }
 
 enum CoverageLevel { researched, baseline, none }
 
-class VenueSearchResult {
-  const VenueSearchResult({required this.venues, required this.coverage});
-
-  final List<Venue> venues;
-  final CoverageLevel coverage;
+@Freezed(makeCollectionsUnmodifiable: false)
+abstract class VenueSearchResult with _$VenueSearchResult {
+  const factory VenueSearchResult({
+    required List<Venue> venues,
+    required CoverageLevel coverage,
+  }) = _VenueSearchResult;
 }

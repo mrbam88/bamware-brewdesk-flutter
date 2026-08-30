@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 
 part 'venue_repository.g.dart';
 
@@ -40,10 +41,9 @@ const bundledSnapshotNote =
 Future<List<Venue>> loadBundledVenueSnapshot() async {
   final raw = await rootBundle.loadString('assets/venue_snapshot.json');
   final json = jsonDecode(raw) as Map<String, dynamic>;
-  return (json['venues'] as List<dynamic>? ?? const [])
-      .cast<Map<String, dynamic>>()
-      .map(Venue.fromJson)
-      .toList(growable: false);
+  // The snapshot is a captured search response, so it decodes through the
+  // same DTO as the live endpoint — one contract, one decoder.
+  return VenueSearchResponseDto.fromJson(json).toDomain().venues;
 }
 
 class VenueRepository {
@@ -59,23 +59,11 @@ class VenueRepository {
     required double lng,
   }) async {
     final json = await _api.search(lat: lat, lng: lng);
-    final venues = (json['venues'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>()
-        .map(Venue.fromJson)
-        .toList(growable: false);
-    for (final venue in venues) {
+    final result = VenueSearchResponseDto.fromJson(json).toDomain();
+    for (final venue in result.venues) {
       _cache[venue.id] = venue;
     }
-    final coverageRaw =
-        (json['meta'] as Map<String, dynamic>?)?['coverage'] as String?;
-    return VenueSearchResult(
-      venues: venues,
-      coverage: switch (coverageRaw) {
-        'baseline' => CoverageLevel.baseline,
-        'none' => CoverageLevel.none,
-        _ => CoverageLevel.researched,
-      },
-    );
+    return result;
   }
 
   /// Cold-start search: emits the bundled snapshot immediately when the
@@ -107,16 +95,16 @@ class VenueRepository {
     final cached = _cache[id];
     if (!refresh && cached != null) return cached;
     final json = await _api.venue(id);
-    final venue = Venue.fromJson(json['venue'] as Map<String, dynamic>);
+    final venue = VenueEnvelopeDto.fromJson(json).venue.toDomain();
     _cache[id] = venue;
     return venue;
   }
 
   Future<List<VenuePhoto>> photos(String id) async {
     final json = await _api.photos(id);
-    return (json['photos'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>()
-        .map((photo) => VenuePhoto.fromJson(photo, _api.baseUri))
+    return PhotosResponseDto.fromJson(json)
+        .photos
+        .map((photo) => photo.toDomain(_api.baseUri))
         .toList(growable: false);
   }
 }

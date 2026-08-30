@@ -3,6 +3,7 @@
 // "wifi unknown" — applies to the shelf/search-results card's wifi/outlets
 // caption row and its provenance line.
 
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
@@ -10,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Venue _venue({Map<String, dynamic>? wifi, Map<String, dynamic>? outlets}) {
-  return Venue.fromJson({
+  return VenueDto.decode({
     'id': 'spot-1',
     'name': 'Blue Bottle SoHo',
     'lat': 40.7,

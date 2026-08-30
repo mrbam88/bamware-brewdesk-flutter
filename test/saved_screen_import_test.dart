@@ -5,7 +5,7 @@ import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
-import 'package:brewdesk/features/venues/domain/venue.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/saved/presentation/saved_screen.dart';
 import 'package:brewdesk/features/saved/application/takeout_import_view_model.dart';
@@ -70,7 +70,7 @@ void main() {
         savedVenues: savedVenues,
         // Matching runs against this fixed catalog, not a live fetch —
         // proves the import path itself never touches the network.
-        venuesLoader: () async => [Venue.fromJson(_venueJson)],
+        venuesLoader: () async => [VenueDto.decode(_venueJson)],
         pickFile: () async => XFile.fromData(
           fixtureBytes,
           name: 'takeout_saved_places.csv',
@@ -128,7 +128,7 @@ void main() {
 
     final importModel = TakeoutImportViewModel(
       savedVenues: savedVenues,
-      venuesLoader: () async => [Venue.fromJson(_venueJson)],
+      venuesLoader: () async => [VenueDto.decode(_venueJson)],
       pickFile: () async => XFile.fromData(
         fixtureBytes,
         name: 'takeout_saved_places.csv',

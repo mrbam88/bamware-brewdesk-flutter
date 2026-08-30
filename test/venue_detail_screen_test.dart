@@ -1,6 +1,7 @@
 import 'package:brewdesk/core/di/app_providers.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
@@ -19,7 +20,7 @@ Venue _venue({
   Map<String, dynamic>? seating,
   String? website,
 }) {
-  return Venue.fromJson({
+  return VenueDto.decode({
     'id': 'spot-1',
     'name': 'Blue Bottle SoHo',
     'lat': 40.7,
@@ -204,7 +205,7 @@ void main() {
   testWidgets('minimal venue renders with optional fields absent', (
     tester,
   ) async {
-    final venue = Venue.fromJson({
+    final venue = VenueDto.decode({
       'id': 'spot-min',
       'name': 'Minimal Spot',
       'lat': 40.7,

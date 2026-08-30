@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -32,7 +33,7 @@ const _liveVenueJson = '''
   }
 ''';
 
-Venue _snapshotVenue() => Venue.fromJson(const {
+Venue _snapshotVenue() => VenueDto.decode(const {
   'id': 'spot-snapshot',
   'name': 'Snapshot Spot',
   'lat': 40.73,
