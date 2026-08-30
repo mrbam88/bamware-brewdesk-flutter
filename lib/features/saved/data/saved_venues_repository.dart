@@ -1,6 +1,15 @@
 import 'package:flutter/foundation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:brewdesk/core/di/app_providers.dart';
 import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
+
+part 'saved_venues_repository.g.dart';
+
+@Riverpod(keepAlive: true)
+SavedVenuesRepository savedVenuesRepository(Ref ref) => SavedVenuesRepository(
+  SavedVenuesService(ref.watch(sharedPreferencesProvider)),
+);
 
 class SavedVenuesRepository extends ChangeNotifier {
   SavedVenuesRepository(this._service) : _ids = _service.load();

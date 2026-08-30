@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
@@ -10,17 +11,13 @@ import 'package:brewdesk/features/saved/application/saved_view_model.dart';
 import 'package:brewdesk/features/saved/presentation/takeout_import_sheet.dart';
 import 'package:brewdesk/features/saved/application/takeout_import_view_model.dart';
 
-class SavedScreen extends StatefulWidget {
+class SavedScreen extends ConsumerStatefulWidget {
   const SavedScreen({
     super.key,
-    required this.venueRepository,
-    required this.savedVenues,
     required this.onBrowse,
     @visibleForTesting this.importModel,
   });
 
-  final VenueRepository venueRepository;
-  final SavedVenuesRepository savedVenues;
   final VoidCallback onBrowse;
 
   /// Test-only seam: lets a widget test inject a [TakeoutImportViewModel]
@@ -28,18 +25,20 @@ class SavedScreen extends StatefulWidget {
   final TakeoutImportViewModel? importModel;
 
   @override
-  State<SavedScreen> createState() => _SavedScreenState();
+  ConsumerState<SavedScreen> createState() => _SavedScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen> {
+class _SavedScreenState extends ConsumerState<SavedScreen> {
+  late final SavedVenuesRepository _savedVenues = ref.read(
+    savedVenuesRepositoryProvider,
+  );
   late final SavedViewModel _model = SavedViewModel(
-    widget.venueRepository,
-    widget.savedVenues,
+    ref.read(venueRepositoryProvider),
+    _savedVenues,
   );
   late final bool _ownsImportModel = widget.importModel == null;
   late final TakeoutImportViewModel _importModel =
-      widget.importModel ??
-      TakeoutImportViewModel(savedVenues: widget.savedVenues);
+      widget.importModel ?? TakeoutImportViewModel(savedVenues: _savedVenues);
 
   @override
   void initState() {
@@ -157,14 +156,11 @@ class _SavedScreenState extends State<SavedScreen> {
                       return VenueCard(
                         venue: venue,
                         saved: true,
-                        onSave: () => widget.savedVenues.toggle(venue.id),
+                        onSave: () => _savedVenues.toggle(venue.id),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => VenueDetailScreen(
-                              initialVenue: venue,
-                              venueRepository: widget.venueRepository,
-                              savedVenues: widget.savedVenues,
-                            ),
+                            builder: (_) =>
+                                VenueDetailScreen(initialVenue: venue),
                           ),
                         ),
                       );
@@ -173,7 +169,7 @@ class _SavedScreenState extends State<SavedScreen> {
                         _model.failedIds[index - _model.venues.length];
                     return _FailedSavedRow(
                       key: Key('saved-failed-$failedId'),
-                      onRemove: () => widget.savedVenues.toggle(failedId),
+                      onRemove: () => _savedVenues.toggle(failedId),
                     );
                   },
                 ),

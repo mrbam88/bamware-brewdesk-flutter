@@ -1,9 +1,21 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
+
+part 'venue_repository.g.dart';
+
+// LEARN: the repository depends on the API client via `ref.watch`, not by
+// constructing it — the provider graph is the DI container. Swap
+// `venueApiProvider` in a test (or a scenario launch) and every dependent
+// provider sees the fake with no plumbing. RN analogy: module wiring you'd
+// otherwise do with jest.mock, but first-class and per-scope.
+@Riverpod(keepAlive: true)
+VenueRepository venueRepository(Ref ref) =>
+    VenueRepository(ref.watch(venueApiProvider));
 
 /// Loads the venues bundled for cold start. Defaults to the packaged
 /// `assets/venue_snapshot.json`; tests substitute a fake.

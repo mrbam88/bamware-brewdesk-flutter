@@ -1,11 +1,11 @@
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
-import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -78,16 +78,19 @@ Future<Widget> _harness(
   final client = MockClient((request) async {
     return http.Response('{"venue": ${_encode(venue)}}', 200);
   });
-  return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: VenueDetailScreen(
-      initialVenue: venue,
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        VenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      shareVenue: share,
+    ],
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: VenueDetailScreen(initialVenue: venue, shareVenue: share),
     ),
   );
 }

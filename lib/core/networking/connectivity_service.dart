@@ -1,4 +1,11 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'connectivity_service.g.dart';
+
+@Riverpod(keepAlive: true)
+ConnectivityService connectivityService(Ref ref) =>
+    const ConnectivityService();
 
 /// Thin wrapper over connectivity_plus: callers only need "am I online now
 /// or not", never the specific transport. Kept as an overridable class (the

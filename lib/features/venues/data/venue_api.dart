@@ -2,6 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'venue_api.g.dart';
+
+@Riverpod(keepAlive: true)
+VenueApi venueApi(Ref ref) => VenueApi();
 
 /// Thrown for a non-2xx engine response. The message names the engine so a
 /// degraded-state card can tell "the engine is down" apart from "you're

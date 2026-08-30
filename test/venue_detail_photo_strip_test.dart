@@ -6,14 +6,14 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
-import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -77,20 +77,22 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: VenueDetailScreen(
-              initialVenue: Venue.fromJson(_venueJson),
-              venueRepository: VenueRepository(
-                VenueApi(
-                  client: client,
-                  baseUri: Uri.parse('https://example.test'),
+          ProviderScope(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(preferences),
+              venueRepositoryProvider.overrideWithValue(
+                VenueRepository(
+                  VenueApi(
+                    client: client,
+                    baseUri: Uri.parse('https://example.test'),
+                  ),
                 ),
               ),
-              savedVenues: SavedVenuesRepository(
-                SavedVenuesService(preferences),
-              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: VenueDetailScreen(initialVenue: Venue.fromJson(_venueJson)),
             ),
           ),
         );

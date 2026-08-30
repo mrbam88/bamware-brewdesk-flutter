@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/core/networking/connectivity_service.dart';
-import 'package:brewdesk/core/location/location_service.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/features/venues/domain/map_marker_planner.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
@@ -19,32 +20,26 @@ import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.
 import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
 import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
 
-class DiscoveryScreen extends StatefulWidget {
-  const DiscoveryScreen({
-    super.key,
-    required this.venueRepository,
-    required this.savedVenues,
-    required this.locationService,
-    @visibleForTesting this.connectivity,
-  });
-
-  final VenueRepository venueRepository;
-  final SavedVenuesRepository savedVenues;
-  final LocationService locationService;
-
-  /// Test seam for the offline→online auto-retry (brewdesk#11) — defaults to
-  /// the real connectivity_plus stream.
-  final ConnectivityService? connectivity;
+class DiscoveryScreen extends ConsumerStatefulWidget {
+  const DiscoveryScreen({super.key});
 
   @override
-  State<DiscoveryScreen> createState() => _DiscoveryScreenState();
+  ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen> {
+class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
+  // LEARN: transitional wiring — the screen still owns its ChangeNotifier
+  // view model, but its dependencies now come from the provider graph via
+  // ref.read (a one-time grab in initState-adjacent code is exactly what
+  // ref.read is for; ref.watch belongs in build). Tests stopped passing
+  // fakes through constructors and override the providers instead.
+  late final SavedVenuesRepository _savedVenues = ref.read(
+    savedVenuesRepositoryProvider,
+  );
   late final DiscoveryViewModel _model = DiscoveryViewModel(
-    widget.venueRepository,
-    widget.locationService,
-    connectivity: widget.connectivity ?? const ConnectivityService(),
+    ref.read(venueRepositoryProvider),
+    ref.read(effectiveLocationServiceProvider),
+    connectivity: ref.read(connectivityServiceProvider),
   );
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
@@ -70,7 +65,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   @override
   void initState() {
     super.initState();
-    widget.savedVenues.addListener(_savedChanged);
+    _savedVenues.addListener(_savedChanged);
     _searchFocus.addListener(_onFocusChanged);
     _model.load().then((_) {
       if (mounted) _mapController.move(_model.center, 13.5);
@@ -87,7 +82,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   @override
   void dispose() {
-    widget.savedVenues.removeListener(_savedChanged);
+    _savedVenues.removeListener(_savedChanged);
     _searchFocus.removeListener(_onFocusChanged);
     _searchFocus.dispose();
     _searchController.dispose();
@@ -276,9 +271,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                     final venue = venues[index];
                     return VenueCard(
                       venue: venue,
-                      saved: widget.savedVenues.contains(venue.id),
+                      saved: _savedVenues.contains(venue.id),
                       onTap: () => _openVenue(venue),
-                      onSave: () => widget.savedVenues.toggle(venue.id),
+                      onSave: () => _savedVenues.toggle(venue.id),
                     );
                   },
                 ),
@@ -458,9 +453,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       final venue = venues[index - 1];
                       return VenueCard(
                         venue: venue,
-                        saved: widget.savedVenues.contains(venue.id),
+                        saved: _savedVenues.contains(venue.id),
                         onTap: () => _openVenue(venue),
-                        onSave: () => widget.savedVenues.toggle(venue.id),
+                        onSave: () => _savedVenues.toggle(venue.id),
                       );
                     },
                   ),
@@ -473,11 +468,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   void _openVenue(Venue venue) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => VenueDetailScreen(
-          initialVenue: venue,
-          venueRepository: widget.venueRepository,
-          savedVenues: widget.savedVenues,
-        ),
+        builder: (_) => VenueDetailScreen(initialVenue: venue),
       ),
     );
   }

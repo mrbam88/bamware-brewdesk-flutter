@@ -1,4 +1,13 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:brewdesk/core/di/app_providers.dart';
+
+part 'onboarding_service.g.dart';
+
+@Riverpod(keepAlive: true)
+OnboardingService onboardingService(Ref ref) =>
+    OnboardingService(ref.watch(sharedPreferencesProvider));
 
 /// Persists whether the onboarding + location-intro flow has been completed.
 ///

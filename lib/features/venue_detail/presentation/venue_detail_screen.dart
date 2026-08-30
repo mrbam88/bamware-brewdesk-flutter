@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:brewdesk/core/widgets/glass_surface.dart';
 
@@ -13,30 +14,33 @@ import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
 import 'package:brewdesk/features/venue_detail/application/venue_detail_view_model.dart';
 
-class VenueDetailScreen extends StatefulWidget {
+class VenueDetailScreen extends ConsumerStatefulWidget {
   const VenueDetailScreen({
     super.key,
     required this.initialVenue,
-    required this.venueRepository,
-    required this.savedVenues,
     this.shareVenue,
   });
 
   final Venue initialVenue;
-  final VenueRepository venueRepository;
-  final SavedVenuesRepository savedVenues;
 
   /// Test seam for the Share action — defaults to the real share sheet.
   final Future<void> Function(String text)? shareVenue;
 
   @override
-  State<VenueDetailScreen> createState() => _VenueDetailScreenState();
+  ConsumerState<VenueDetailScreen> createState() => _VenueDetailScreenState();
 }
 
-class _VenueDetailScreenState extends State<VenueDetailScreen> {
+class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
+  // LEARN: `initialVenue` stays a constructor argument — it's ROUTE data
+  // (which venue this screen is about), not a service. Dependencies come
+  // from the graph; identity comes from the caller. Same split as an RN
+  // screen taking route params while services come from context/hooks.
+  late final SavedVenuesRepository _savedVenues = ref.read(
+    savedVenuesRepositoryProvider,
+  );
   late final VenueDetailViewModel _model = VenueDetailViewModel(
     widget.initialVenue,
-    widget.venueRepository,
+    ref.read(venueRepositoryProvider),
   );
   Venue get _venue => _model.venue;
   List<VenuePhoto> get _photos => _model.photos;
@@ -62,13 +66,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   @override
   void initState() {
     super.initState();
-    widget.savedVenues.addListener(_savedChanged);
+    _savedVenues.addListener(_savedChanged);
     _model.load();
   }
 
   @override
   void dispose() {
-    widget.savedVenues.removeListener(_savedChanged);
+    _savedVenues.removeListener(_savedChanged);
     _model.dispose();
     super.dispose();
   }
@@ -322,12 +326,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
-                        tooltip: widget.savedVenues.contains(_venue.id)
+                        tooltip: _savedVenues.contains(_venue.id)
                             ? l10n.venueDetailRemoveFromSaved
                             : l10n.venueDetailSaveSpot,
-                        onPressed: () => widget.savedVenues.toggle(_venue.id),
+                        onPressed: () => _savedVenues.toggle(_venue.id),
                         icon: Icon(
-                          widget.savedVenues.contains(_venue.id)
+                          _savedVenues.contains(_venue.id)
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                         ),

@@ -11,6 +11,7 @@ import 'package:brewdesk/features/saved/presentation/saved_screen.dart';
 import 'package:brewdesk/features/saved/application/takeout_import_view_model.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -78,14 +79,15 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: SavedScreen(
-            venueRepository: venueRepository,
-            savedVenues: savedVenues,
-            onBrowse: () {},
-            importModel: importModel,
+        ProviderScope(
+          overrides: [
+            savedVenuesRepositoryProvider.overrideWithValue(savedVenues),
+            venueRepositoryProvider.overrideWithValue(venueRepository),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: SavedScreen(onBrowse: () {}, importModel: importModel),
           ),
         ),
       );
@@ -135,14 +137,15 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: SavedScreen(
-          venueRepository: venueRepository,
-          savedVenues: savedVenues,
-          onBrowse: () {},
-          importModel: importModel,
+      ProviderScope(
+        overrides: [
+          savedVenuesRepositoryProvider.overrideWithValue(savedVenues),
+          venueRepositoryProvider.overrideWithValue(venueRepository),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SavedScreen(onBrowse: () {}, importModel: importModel),
         ),
       ),
     );

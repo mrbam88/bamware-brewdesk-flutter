@@ -9,15 +9,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/core/di/app_providers.dart';
+import 'package:brewdesk/core/location/location_mode.dart';
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
 import 'package:brewdesk/core/networking/connectivity_service.dart';
-import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/core/widgets/branded_loading_view.dart';
 import 'package:brewdesk/features/discovery/presentation/discovery_screen.dart';
-import 'package:brewdesk/features/onboarding/data/union_square_location_service.dart';
+import 'package:brewdesk/core/location/union_square_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -76,16 +77,29 @@ Future<Widget> _harness({
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
-  return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: DiscoveryScreen(
-      venueRepository: VenueRepository(
-        VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+  // LEARN: fakes enter through provider overrides now, not constructors —
+  // the ProviderScope here plays the role a mocked module/jest.mock played
+  // in RN tests. Overriding sharedPreferencesProvider is enough for the
+  // saved-venues graph; the derived savedVenuesRepositoryProvider builds
+  // its real implementation over the mock prefs.
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      venueRepositoryProvider.overrideWithValue(
+        VenueRepository(
+          VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
+        ),
       ),
-      savedVenues: SavedVenuesRepository(SavedVenuesService(preferences)),
-      locationService: const UnionSquareLocationService(),
-      connectivity: connectivity,
+      effectiveLocationServiceProvider.overrideWithValue(
+        const UnionSquareLocationService(),
+      ),
+      if (connectivity != null)
+        connectivityServiceProvider.overrideWithValue(connectivity),
+    ],
+    child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: DiscoveryScreen(),
     ),
   );
 }

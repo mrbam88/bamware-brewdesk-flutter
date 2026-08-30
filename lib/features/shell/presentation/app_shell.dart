@@ -2,25 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'package:brewdesk/core/widgets/glass_surface.dart';
 
-import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
-import 'package:brewdesk/features/venues/data/venue_repository.dart';
-import 'package:brewdesk/core/location/location_service.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/features/discovery/presentation/discovery_screen.dart';
 import 'package:brewdesk/features/profile/presentation/profile_screen.dart';
 import 'package:brewdesk/features/saved/presentation/saved_screen.dart';
 
+// LEARN: the selected tab stays plain setState on purpose. Ephemeral,
+// single-widget UI state gains nothing from a provider or a Bloc — reaching
+// for the heavy pattern everywhere is the Flutter equivalent of putting a
+// text field's value in Redux.
 class AppShell extends StatefulWidget {
-  const AppShell({
-    super.key,
-    required this.venueRepository,
-    required this.savedVenues,
-    required this.locationService,
-  });
-
-  final VenueRepository venueRepository;
-  final SavedVenuesRepository savedVenues;
-  final LocationService locationService;
+  const AppShell({super.key});
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -33,16 +25,8 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final screens = [
-      DiscoveryScreen(
-        venueRepository: widget.venueRepository,
-        savedVenues: widget.savedVenues,
-        locationService: widget.locationService,
-      ),
-      SavedScreen(
-        venueRepository: widget.venueRepository,
-        savedVenues: widget.savedVenues,
-        onBrowse: () => setState(() => _index = 0),
-      ),
+      const DiscoveryScreen(),
+      SavedScreen(onBrowse: () => setState(() => _index = 0)),
       const ProfileScreen(),
     ];
     return Scaffold(
