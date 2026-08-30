@@ -1,5 +1,5 @@
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
+import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

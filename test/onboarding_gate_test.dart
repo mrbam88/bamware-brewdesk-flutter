@@ -1,7 +1,7 @@
-import 'package:brewdesk/data/services/location_service.dart';
+import 'package:brewdesk/core/location/location_service.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/onboarding/onboarding_gate.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:brewdesk/features/onboarding/presentation/onboarding_gate.dart';
+import 'package:brewdesk/features/onboarding/data/union_square_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';

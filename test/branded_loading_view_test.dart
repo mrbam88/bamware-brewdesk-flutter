@@ -1,6 +1,6 @@
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/core/app_theme.dart';
-import 'package:brewdesk/ui/core/branded_loading_view.dart';
+import 'package:brewdesk/core/theme/app_theme.dart';
+import 'package:brewdesk/core/widgets/branded_loading_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

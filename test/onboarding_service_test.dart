@@ -1,4 +1,4 @@
-import 'package:brewdesk/ui/features/onboarding/onboarding_service.dart';
+import 'package:brewdesk/features/onboarding/data/onboarding_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

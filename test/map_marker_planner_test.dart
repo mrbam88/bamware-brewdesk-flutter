@@ -1,5 +1,5 @@
-import 'package:brewdesk/domain/models/venue.dart';
-import 'package:brewdesk/domain/use_cases/map_marker_planner.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
+import 'package:brewdesk/features/venues/domain/map_marker_planner.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Venue _venue({

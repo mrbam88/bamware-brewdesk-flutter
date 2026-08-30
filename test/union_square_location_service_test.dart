@@ -1,4 +1,4 @@
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
+import 'package:brewdesk/features/onboarding/data/union_square_location_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 

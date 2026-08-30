@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:brewdesk/data/services/takeout_import_service.dart';
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/features/saved/domain/takeout_import_service.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Venue _venue({

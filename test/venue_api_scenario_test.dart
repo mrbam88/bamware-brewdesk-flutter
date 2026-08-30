@@ -3,7 +3,7 @@
 // not `testWidgets()` — the "slow" case genuinely waits out a short real
 // delay, which is fine outside the FakeAsync zone testWidgets runs in.
 
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

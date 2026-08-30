@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';

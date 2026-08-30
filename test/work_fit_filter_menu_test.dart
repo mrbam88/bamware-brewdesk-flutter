@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/location_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/core/location/location_service.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/discovery/discovery_view_model.dart';
-import 'package:brewdesk/ui/features/discovery/work_fit_filter_menu.dart';
+import 'package:brewdesk/features/discovery/application/discovery_view_model.dart';
+import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;

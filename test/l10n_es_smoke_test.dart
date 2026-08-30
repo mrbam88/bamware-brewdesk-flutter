@@ -8,13 +8,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:brewdesk/data/repositories/saved_venues_repository.dart';
-import 'package:brewdesk/data/repositories/venue_repository.dart';
-import 'package:brewdesk/data/services/saved_venues_service.dart';
-import 'package:brewdesk/data/services/venue_api.dart';
+import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
+import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/saved/data/saved_venues_service.dart';
+import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/onboarding/union_square_location_service.dart';
-import 'package:brewdesk/ui/features/shell/app_shell.dart';
+import 'package:brewdesk/features/onboarding/data/union_square_location_service.dart';
+import 'package:brewdesk/features/shell/presentation/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;

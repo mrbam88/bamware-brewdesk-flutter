@@ -1,4 +1,4 @@
-import 'package:brewdesk/domain/models/venue.dart';
+import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

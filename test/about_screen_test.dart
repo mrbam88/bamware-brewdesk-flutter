@@ -1,5 +1,5 @@
 import 'package:brewdesk/l10n/app_localizations.dart';
-import 'package:brewdesk/ui/features/profile/about_screen.dart';
+import 'package:brewdesk/features/profile/presentation/about_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
