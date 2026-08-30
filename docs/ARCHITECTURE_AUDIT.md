@@ -1,7 +1,14 @@
 # State-Management Architecture Audit
 
 _Phase 0 of the state-architecture refactor (2026-08-30). Read-only findings;
-the target design lives in `docs/adr/0001-state-management.md` once approved._
+the target design lives in `docs/adr/0001-state-management.md`._
+
+> **Outcome (post-refactor):** every finding below was addressed on the
+> `refactor/state-architecture` branch — see the ADR for the decision and
+> `docs/LEARNING_GUIDE.md` for the tour. One item was deliberately NOT
+> resolved: `coldStart()` stays unwired because it conflicts with the newer
+> branded-loading feature (#33) — wiring the snapshot in would make that
+> state nearly unreachable. Needs a product call: wire it or delete it.
 
 **RN translation key** (used throughout): `ChangeNotifier` ≈ a hand-rolled
 Zustand store that components subscribe to; `ListenableBuilder` ≈
