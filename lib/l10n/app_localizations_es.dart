@@ -282,6 +282,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileHowScoringWorks => 'Cómo funciona la puntuación';
 
   @override
+  String get profileShareApp => 'Compartir la app';
+
+  @override
+  String get profileAboutTitle => 'Acerca de';
+
+  @override
   String get profileAboutSectionTitle => 'Acerca de';
 
   @override

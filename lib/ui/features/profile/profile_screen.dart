@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../core/app_theme.dart';
 import '../methodology/methodology_screen.dart';
+import 'about_screen.dart';
 
+/// The You tab (brewdesk-flutter#32): a compact, Atly-style profile list.
+/// The hero card, honesty cards, and Support/Privacy/Terms/license/version
+/// content that used to splash across this surface now live behind the
+/// About row in [AboutScreen] — a detail nav, not front-page content.
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.shareApp});
+
+  /// Test seam: overrides the default [SharePlus] call so widget tests
+  /// don't hit a real platform channel.
+  final Future<void> Function(String text)? shareApp;
+
+  static const _shareText =
+      'BrewDesk — find your next work spot: https://bamware.io/brewdesk';
 
   @override
   Widget build(BuildContext context) {
@@ -17,54 +27,7 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: AppColors.green,
-              borderRadius: BorderRadius.circular(26),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.work_outline_rounded,
-                  color: AppColors.cream,
-                  size: 34,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.profileHeroTitle,
-                  style: const TextStyle(
-                    color: AppColors.cream,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.profileHeroBody,
-                  style: const TextStyle(color: AppColors.cream, height: 1.4),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _InfoTile(
-            icon: Icons.lock_outline_rounded,
-            title: l10n.profileAccountlessTitle,
-            subtitle: l10n.profileAccountlessBody,
-          ),
-          _InfoTile(
-            icon: Icons.fact_check_outlined,
-            title: l10n.profileTransparentTitle,
-            subtitle: l10n.profileTransparentBody,
-          ),
-          _InfoTile(
-            icon: Icons.public_rounded,
-            title: l10n.profileMoreThanCafesTitle,
-            subtitle: l10n.profileMoreThanCafesBody,
-          ),
-          const SizedBox(height: 6),
+          // #120 account card slot
           _NavTile(
             icon: Icons.insights_rounded,
             title: l10n.profileHowScoringWorks,
@@ -72,38 +35,31 @@ class ProfileScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const MethodologyScreen()),
             ),
           ),
-          const SizedBox(height: 18),
-          const _AboutSection(),
+          const SizedBox(height: 10),
+          _NavTile(
+            icon: Icons.ios_share_rounded,
+            title: l10n.profileShareApp,
+            onTap: _shareTheApp,
+          ),
+          const SizedBox(height: 10),
+          _NavTile(
+            icon: Icons.info_outline_rounded,
+            title: l10n.profileAboutTitle,
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+          ),
         ],
       ),
     );
   }
-}
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  Future<void> _shareTheApp() {
+    final share = shareApp ?? _defaultShare;
+    return share(_shareText);
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(14),
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(subtitle),
-        ),
-      ),
-    );
+  Future<void> _defaultShare(String text) async {
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 }
 
@@ -127,127 +83,6 @@ class _NavTile extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
-      ),
-    );
-  }
-}
-
-/// Support/legal/version rows (brewdesk-flutter#9). Mirrors the iOS You
-/// tab's About section — Support, Privacy Policy, Terms of Use, open-source
-/// licenses, and the real package version.
-class _AboutSection extends StatelessWidget {
-  const _AboutSection();
-
-  static final Uri _supportUri = Uri.parse(
-    'https://bamware.io/brewdesk/support',
-  );
-  static final Uri _privacyUri = Uri.parse(
-    'https://bamware.io/brewdesk/privacy',
-  );
-  static final Uri _termsUri = Uri.parse('https://bamware.io/brewdesk/terms');
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.profileAboutSectionTitle,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-          _AboutRow(
-            icon: Icons.mail_outline_rounded,
-            label: l10n.profileSupport,
-            onTap: () => launchUrl(_supportUri),
-          ),
-          _AboutRow(
-            icon: Icons.privacy_tip_outlined,
-            label: l10n.profilePrivacyPolicy,
-            onTap: () => launchUrl(_privacyUri),
-          ),
-          _AboutRow(
-            icon: Icons.gavel_outlined,
-            label: l10n.profileTermsOfUse,
-            onTap: () => launchUrl(_termsUri),
-          ),
-          _AboutRow(
-            icon: Icons.description_outlined,
-            label: l10n.profileOpenSourceLicenses,
-            onTap: () =>
-                showLicensePage(context: context, applicationName: 'BrewDesk'),
-          ),
-          const _VersionRow(),
-        ],
-      ),
-    );
-  }
-}
-
-class _AboutRow extends StatelessWidget {
-  const _AboutRow({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    );
-  }
-}
-
-class _VersionRow extends StatelessWidget {
-  const _VersionRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
-      child: FutureBuilder<PackageInfo>(
-        future: PackageInfo.fromPlatform(),
-        builder: (context, snapshot) {
-          final info = snapshot.data;
-          final label = info == null
-              ? '…'
-              : '${info.version} (${info.buildNumber})';
-          return Row(
-            children: [
-              Text(
-                l10n.profileVersionLabel,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const Spacer(),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
