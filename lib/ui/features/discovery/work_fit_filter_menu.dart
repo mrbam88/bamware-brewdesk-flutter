@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/glass_surface.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
 import '../../core/venue_widgets.dart';
@@ -42,12 +44,22 @@ class _WorkFitFilterButtonState extends State<WorkFitFilterButton> {
               targetAnchor: Alignment.bottomRight,
               followerAnchor: Alignment.topRight,
               offset: const Offset(0, 8),
-              child: Material(
-                elevation: 8,
-                color: Theme.of(context).colorScheme.surface,
-                shadowColor: Colors.black38,
-                borderRadius: BorderRadius.circular(18),
-                child: WorkFitFilterMenu(model: widget.model),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black38, blurRadius: 20),
+                  ],
+                ),
+                child: GlassSurface(
+                  opacity: 0.86,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    borderRadius: BorderRadius.circular(18),
+                    child: WorkFitFilterMenu(model: widget.model),
+                  ),
+                ),
               ),
             ),
           ],

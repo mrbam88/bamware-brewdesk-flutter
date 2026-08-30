@@ -10,6 +10,7 @@ import '../../../domain/models/venue.dart';
 import '../../../domain/use_cases/map_marker_planner.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_theme.dart';
+import '../../core/glass_surface.dart';
 import '../../core/venue_widgets.dart';
 import '../venue_detail/venue_detail_screen.dart';
 import 'discovery_view_model.dart';
@@ -163,7 +164,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
           floatingActionButton: searching
               ? null
               : Padding(
-                  padding: const EdgeInsets.only(bottom: 116),
+                  padding: const EdgeInsets.only(bottom: 232),
                   child: FloatingActionButton.small(
                     tooltip: l10n.discoveryUseMyLocationTooltip,
                     backgroundColor: Theme.of(context).colorScheme.surface,
@@ -243,69 +244,78 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
-            elevation: 5,
-            shadowColor: Colors.black26,
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 16),
+              ],
+            ),
+            child: GlassSurface(
+              borderRadius: BorderRadius.circular(24),
+              child: Material(
+                type: MaterialType.transparency,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocus,
-                          onChanged: _model.setQuery,
-                          textInputAction: TextInputAction.search,
-                          decoration: InputDecoration(
-                            hintText: l10n.discoverySearchHint,
-                            prefixIcon: const Icon(Icons.search_rounded),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(999),
-                              borderSide: BorderSide.none,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocus,
+                              onChanged: _model.setQuery,
+                              textInputAction: TextInputAction.search,
+                              decoration: InputDecoration(
+                                hintText: l10n.discoverySearchHint,
+                                prefixIcon: const Icon(Icons.search_rounded),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          if (searching)
+                            TextButton(
+                              key: const Key('search-cancel'),
+                              onPressed: _cancelSearch,
+                              child: Text(l10n.cancel),
+                            )
+                          else
+                            WorkFitFilterButton(model: _model),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      if (searching)
-                        TextButton(
-                          key: const Key('search-cancel'),
-                          onPressed: _cancelSearch,
-                          child: Text(l10n.cancel),
-                        )
-                      else
-                        WorkFitFilterButton(model: _model),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.discoveryVisibleOfTotal(
+                                visibleCount,
+                                totalCount,
+                              ),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            l10n.discoveryScoresShowWorkFit,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.discoveryVisibleOfTotal(
-                            visibleCount,
-                            totalCount,
-                          ),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        l10n.discoveryScoresShowWorkFit,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -333,63 +343,68 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   Widget _venueShelf(AppLocalizations l10n, List<Venue> venues) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.22,
-      minChildSize: 0.14,
-      maxChildSize: 0.62,
+      // Sizes account for extendBody (#30): the sheet now runs beneath the
+      // glass tab bar, so resting height rises to keep the top card visible.
+      initialChildSize: 0.30,
+      minChildSize: 0.16,
+      maxChildSize: 0.68,
       snap: true,
-      snapSizes: const [0.14, 0.34, 0.62],
+      snapSizes: const [0.16, 0.30, 0.68],
       builder: (context, controller) {
         return DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 18)],
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 18)],
           ),
-          child: venues.isEmpty
-              ? ListView(
-                  key: const Key('discovery-state-empty'),
-                  controller: controller,
-                  children: [
-                    const SizedBox(height: 12),
-                    _ShelfHandle(l10n: l10n, count: venues.length),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.discoveryEmptyView,
-                            textAlign: TextAlign.center,
-                          ),
-                          if (_model.activeFilterCount > 0) ...[
-                            const SizedBox(height: 12),
-                            OutlinedButton(
-                              key: const Key('discovery-clear-filters'),
-                              onPressed: _model.resetFilters,
-                              child: Text(l10n.discoveryClearFilters),
+          child: GlassSurface(
+            opacity: 0.82,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+            child: venues.isEmpty
+                ? ListView(
+                    key: const Key('discovery-state-empty'),
+                    controller: controller,
+                    children: [
+                      const SizedBox(height: 12),
+                      _ShelfHandle(l10n: l10n, count: venues.length),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.discoveryEmptyView,
+                              textAlign: TextAlign.center,
                             ),
+                            if (_model.activeFilterCount > 0) ...[
+                              const SizedBox(height: 12),
+                              OutlinedButton(
+                                key: const Key('discovery-clear-filters'),
+                                onPressed: _model.resetFilters,
+                                child: Text(l10n.discoveryClearFilters),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                )
-              : ListView.builder(
-                  controller: controller,
-                  itemCount: venues.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return _ShelfHandle(l10n: l10n, count: venues.length);
-                    }
-                    final venue = venues[index - 1];
-                    return VenueCard(
-                      venue: venue,
-                      saved: widget.savedVenues.contains(venue.id),
-                      onTap: () => _openVenue(venue),
-                      onSave: () => widget.savedVenues.toggle(venue.id),
-                    );
-                  },
-                ),
+                    ],
+                  )
+                : ListView.builder(
+                    controller: controller,
+                    itemCount: venues.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _ShelfHandle(l10n: l10n, count: venues.length);
+                      }
+                      final venue = venues[index - 1];
+                      return VenueCard(
+                        venue: venue,
+                        saved: widget.savedVenues.contains(venue.id),
+                        onTap: () => _openVenue(venue),
+                        onSave: () => widget.savedVenues.toggle(venue.id),
+                      );
+                    },
+                  ),
+          ),
         );
       },
     );
