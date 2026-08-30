@@ -49,4 +49,4 @@ final class VenueRepositoryProvider
   }
 }
 
-String _$venueRepositoryHash() => r'4a32074f0bf357cd309d17e3365bbfee950d1573';
+String _$venueRepositoryHash() => r'a24da2ff50f6296503a15260d9546efe7bf543a8';

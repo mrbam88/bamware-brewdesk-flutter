@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:brewdesk/features/saved/data/saved_venues_repository.dart';
-import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/domain/venue_repository.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
 
 class SavedViewModel extends ChangeNotifier {

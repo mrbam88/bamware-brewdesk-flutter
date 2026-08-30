@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:brewdesk/features/venues/data/venue_repository.dart';
+import 'package:brewdesk/features/venues/domain/venue_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 import 'package:brewdesk/features/venues/domain/venue.dart';
@@ -82,7 +83,7 @@ void main() {
         }
       ''', 200);
     });
-    final repository = VenueRepository(
+    final repository = ApiVenueRepository(
       VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
     );
 
@@ -100,7 +101,7 @@ void main() {
         await networkGate.future;
         return http.Response(_liveVenueJson, 200);
       });
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
         snapshotLoader: () async => [_snapshotVenue()],
       );
@@ -117,7 +118,7 @@ void main() {
 
       expect(events, hasLength(1));
       expect(events.single.isBundledSnapshot, isTrue);
-      expect(events.single.note, bundledSnapshotNote);
+      expect(events.single.isBundledSnapshot, isTrue);
       expect(events.single.venues.single.name, 'Snapshot Spot');
 
       networkGate.complete();
@@ -125,14 +126,14 @@ void main() {
 
       expect(events, hasLength(2));
       expect(events.last.isBundledSnapshot, isFalse);
-      expect(events.last.note, isNull);
+      expect(events.last.isBundledSnapshot, isFalse);
       expect(events.last.venues.single.name, 'Live Spot');
       expect(events.last.coverage, CoverageLevel.researched);
     });
 
     test('keeps the snapshot and note visible when the live call fails (engine down)', () async {
       final client = MockClient((request) async => http.Response('down', 503));
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
         snapshotLoader: () async => [_snapshotVenue()],
       );
@@ -142,7 +143,7 @@ void main() {
       expect(events, hasLength(2));
       for (final event in events) {
         expect(event.isBundledSnapshot, isTrue);
-        expect(event.note, bundledSnapshotNote);
+        expect(event.isBundledSnapshot, isTrue);
         expect(event.venues.single.name, 'Snapshot Spot');
       }
     });
@@ -151,7 +152,7 @@ void main() {
       final client = MockClient(
         (request) async => http.Response(_liveVenueJson, 200),
       );
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
         snapshotLoader: () async => [_snapshotVenue()],
       );

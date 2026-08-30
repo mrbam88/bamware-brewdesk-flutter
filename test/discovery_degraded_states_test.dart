@@ -86,7 +86,7 @@ Future<Widget> _harness({
     overrides: [
       sharedPreferencesProvider.overrideWithValue(preferences),
       venueRepositoryProvider.overrideWithValue(
-        VenueRepository(
+        ApiVenueRepository(
           VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
         ),
       ),

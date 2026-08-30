@@ -16,7 +16,7 @@ Future<DiscoveryViewModel> _emptyModel() async {
     (request) async =>
         http.Response(jsonEncode({'meta': {}, 'venues': []}), 200),
   );
-  final repository = VenueRepository(
+  final repository = ApiVenueRepository(
     VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
   );
   final model = DiscoveryViewModel(repository, const LocationService());

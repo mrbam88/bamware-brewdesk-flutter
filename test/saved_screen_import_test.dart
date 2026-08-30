@@ -57,7 +57,7 @@ void main() {
         }
         fail('Unexpected network call during import: ${request.url}');
       });
-      final venueRepository = VenueRepository(
+      final venueRepository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
       );
 
@@ -118,7 +118,7 @@ void main() {
     final client = MockClient((request) async {
       fail('Unexpected network call: ${request.url}');
     });
-    final venueRepository = VenueRepository(
+    final venueRepository = ApiVenueRepository(
       VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
     );
 

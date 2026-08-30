@@ -360,7 +360,7 @@ void main() {
     test(
       'meta.coverage "researched" maps to CoverageLevel.researched',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               _searchBody(
@@ -380,7 +380,7 @@ void main() {
     );
 
     test('meta.coverage "baseline" maps to CoverageLevel.baseline', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             _searchBody(coverage: 'baseline', venue: _baselineVenueJson()),
@@ -398,7 +398,7 @@ void main() {
     test(
       'meta.coverage "none" maps to CoverageLevel.none with an empty list',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"count": 0, "meta": {"coverage": "none"}, "venues": []}',
@@ -415,7 +415,7 @@ void main() {
     );
 
     test('a missing meta object defaults to CoverageLevel.researched', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"count": 1, "venues": [${_encodeJson(_researchedVenueJson())}]}',
@@ -432,7 +432,7 @@ void main() {
     test(
       'an empty venues list decodes without throwing when the key is absent',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor((request) async => http.Response('{"count": 0}', 200)),
         );
 
@@ -445,7 +445,7 @@ void main() {
 
   group('VenueRepository.venue — detail decode', () {
     test('detail response with business info decodes website and phone', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"venue": ${_encodeJson(_researchedVenueJson(website: 'https://researchedcafe.example.com', phone: '+1 212-555-0100'))}, "observations": []}',
@@ -461,7 +461,7 @@ void main() {
     });
 
     test('detail response without business info decodes to null fields', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"venue": ${_encodeJson(_baselineVenueJson())}, "observations": []}',
@@ -482,7 +482,7 @@ void main() {
     test(
       'a relative photo URL resolves against the configured API base URL',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"photos": [{"url": "/v1/photo-proxy/abc123", "attribution": "Jane D."}]}',
@@ -505,7 +505,7 @@ void main() {
     test(
       'an absolute Google-hosted photo URL is left unresolved (unchanged)',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor(
             (request) async => http.Response(
               '{"photos": [{"url": "https://lh3.googleusercontent.com/abc"}]}',
@@ -522,7 +522,7 @@ void main() {
     );
 
     test('a photo missing attribution decodes to a null attribution', () async {
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         _apiFor(
           (request) async => http.Response(
             '{"photos": [{"url": "https://lh3.googleusercontent.com/no-attr"}]}',
@@ -539,7 +539,7 @@ void main() {
     test(
       'a missing photos key decodes to an empty list, never a throw',
       () async {
-        final repository = VenueRepository(
+        final repository = ApiVenueRepository(
           _apiFor((request) async => http.Response('{}', 200)),
         );
 

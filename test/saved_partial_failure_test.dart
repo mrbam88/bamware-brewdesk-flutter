@@ -58,7 +58,7 @@ void main() {
         }
         return http.Response('not found', 404);
       });
-      final repository = VenueRepository(
+      final repository = ApiVenueRepository(
         VenueApi(client: client, baseUri: Uri.parse('https://example.test')),
       );
 

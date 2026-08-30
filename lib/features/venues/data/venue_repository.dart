@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:brewdesk/features/venues/domain/venue.dart';
+import 'package:brewdesk/features/venues/domain/venue_repository.dart';
 import 'package:brewdesk/features/venues/data/venue_api.dart';
 import 'package:brewdesk/features/venues/data/venue_dtos.dart';
 
@@ -14,29 +15,16 @@ part 'venue_repository.g.dart';
 // `venueApiProvider` in a test (or a scenario launch) and every dependent
 // provider sees the fake with no plumbing. RN analogy: module wiring you'd
 // otherwise do with jest.mock, but first-class and per-scope.
+// LEARN: the provider's declared type is the domain INTERFACE — consumers
+// can't see (or downcast to) the HTTP implementation. This is where the
+// dependency inversion is actually enforced.
 @Riverpod(keepAlive: true)
 VenueRepository venueRepository(Ref ref) =>
-    VenueRepository(ref.watch(venueApiProvider));
+    ApiVenueRepository(ref.watch(venueApiProvider));
 
 /// Loads the venues bundled for cold start. Defaults to the packaged
 /// `assets/venue_snapshot.json`; tests substitute a fake.
 typedef VenueSnapshotLoader = Future<List<Venue>> Function();
-
-/// A search result that may be showing the bundled cold-start snapshot
-/// instead of (or ahead of) a live response. [note] is set only while
-/// bundled data is on screen; UI that ignores it renders nothing extra.
-class ColdStartResult {
-  const ColdStartResult({required this.venues, this.coverage, this.note});
-
-  final List<Venue> venues;
-  final CoverageLevel? coverage;
-  final String? note;
-
-  bool get isBundledSnapshot => note != null;
-}
-
-const bundledSnapshotNote =
-    'Showing bundled data. Live results will replace it once the network responds.';
 
 Future<List<Venue>> loadBundledVenueSnapshot() async {
   final raw = await rootBundle.loadString('assets/venue_snapshot.json');
@@ -46,14 +34,17 @@ Future<List<Venue>> loadBundledVenueSnapshot() async {
   return VenueSearchResponseDto.fromJson(json).toDomain().venues;
 }
 
-class VenueRepository {
-  VenueRepository(this._api, {VenueSnapshotLoader? snapshotLoader})
+/// The production [VenueRepository]: engine HTTP API + bundled snapshot,
+/// with a session-lifetime in-memory cache keyed by venue id.
+class ApiVenueRepository implements VenueRepository {
+  ApiVenueRepository(this._api, {VenueSnapshotLoader? snapshotLoader})
     : _loadSnapshot = snapshotLoader ?? loadBundledVenueSnapshot;
 
   final VenueApi _api;
   final VenueSnapshotLoader _loadSnapshot;
   final Map<String, Venue> _cache = {};
 
+  @override
   Future<VenueSearchResult> search({
     required double lat,
     required double lng,
@@ -66,10 +57,7 @@ class VenueRepository {
     return result;
   }
 
-  /// Cold-start search: emits the bundled snapshot immediately when the
-  /// cache is empty, then the live result once the network responds. If the
-  /// live call fails, the snapshot stays on screen with [bundledSnapshotNote]
-  /// rather than leaving the caller with nothing.
+  @override
   Stream<ColdStartResult> coldStart({
     required double lat,
     required double lng,
@@ -80,17 +68,18 @@ class VenueRepository {
       for (final venue in snapshotVenues) {
         _cache[venue.id] = venue;
       }
-      yield ColdStartResult(venues: snapshotVenues, note: bundledSnapshotNote);
+      yield ColdStartResult(venues: snapshotVenues, isBundledSnapshot: true);
     }
     try {
       final live = await search(lat: lat, lng: lng);
       yield ColdStartResult(venues: live.venues, coverage: live.coverage);
     } on Object {
       if (snapshotVenues == null) rethrow;
-      yield ColdStartResult(venues: snapshotVenues, note: bundledSnapshotNote);
+      yield ColdStartResult(venues: snapshotVenues, isBundledSnapshot: true);
     }
   }
 
+  @override
   Future<Venue> venue(String id, {bool refresh = false}) async {
     final cached = _cache[id];
     if (!refresh && cached != null) return cached;
@@ -100,6 +89,7 @@ class VenueRepository {
     return venue;
   }
 
+  @override
   Future<List<VenuePhoto>> photos(String id) async {
     final json = await _api.photos(id);
     return PhotosResponseDto.fromJson(json)

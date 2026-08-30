@@ -50,7 +50,7 @@ const _searchResponse = '''
 void main() {
   test('declining the OS location prompt still lands on a populated map '
       'via the Manhattan fallback', () async {
-    final repository = VenueRepository(
+    final repository = ApiVenueRepository(
       VenueApi(
         client: MockClient((_) async => http.Response(_searchResponse, 200)),
         baseUri: Uri.parse('https://example.test'),
