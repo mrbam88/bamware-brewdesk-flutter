@@ -528,7 +528,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   void _openVenue(Venue venue) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => VenueDetailScreen(initialVenue: venue)),
+      MaterialPageRoute<void>(builder: (_) => VenueDetailScreen(initialVenue: venue)),
     );
   }
 }

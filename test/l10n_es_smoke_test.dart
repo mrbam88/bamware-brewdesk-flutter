@@ -56,7 +56,7 @@ Future<Widget> _harness() async {
   final preferences = await SharedPreferences.getInstance();
   final client = MockClient(
     (request) async =>
-        http.Response(jsonEncode({'meta': {}, 'venues': []}), 200),
+        http.Response(jsonEncode({'meta': <String, Object?>{}, 'venues': <Object?>[]}), 200),
   );
   return ProviderScope(
     overrides: [

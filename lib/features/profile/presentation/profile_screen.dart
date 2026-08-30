@@ -32,7 +32,7 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.insights_rounded,
             title: l10n.profileHowScoringWorks,
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MethodologyScreen()),
+              MaterialPageRoute<void>(builder: (_) => const MethodologyScreen()),
             ),
           ),
           const SizedBox(height: 10),
@@ -46,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.info_outline_rounded,
             title: l10n.profileAboutTitle,
             onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+                .push(MaterialPageRoute<void>(builder: (_) => const AboutScreen())),
           ),
         ],
       ),

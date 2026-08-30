@@ -64,7 +64,7 @@ Future<Widget> _harness() async {
   final client = MockClient(
     (request) async => http.Response(
       jsonEncode({
-        'meta': {},
+        'meta': <String, Object?>{},
         'venues': [_venueJson('spot-1')],
       }),
       200,

@@ -147,7 +147,7 @@ void main() {
         if (attempt == 1) throw const SocketException('offline');
         return http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             'venues': [_venueJson('spot-1')],
           }),
           200,
@@ -182,7 +182,7 @@ void main() {
       final client = MockClient(
         (request) async => http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             // laptopPolicy: discouraged — excluded once laptop-friendly is on.
             'venues': [_venueJson('spot-1')],
           }),
@@ -224,7 +224,7 @@ void main() {
     await HttpOverrides.runZoned(() async {
       final client = MockClient(
         (request) async =>
-            http.Response(jsonEncode({'meta': {}, 'venues': <Object?>[]}), 200),
+            http.Response(jsonEncode({'meta': <String, Object?>{}, 'venues': <Object?>[]}), 200),
       );
       await tester.pumpWidget(await _harness(client: client));
       await _pumpDiscovery(tester);
@@ -263,7 +263,7 @@ void main() {
         gate.complete(
           http.Response(
             jsonEncode({
-              'meta': {},
+              'meta': <String, Object?>{},
               'venues': [_venueJson('spot-1')],
             }),
             200,
@@ -282,7 +282,7 @@ void main() {
       final client = MockClient(
         (request) async => http.Response(
           jsonEncode({
-            'meta': {},
+            'meta': <String, Object?>{},
             'venues': [_venueJson('spot-1')],
           }),
           200,

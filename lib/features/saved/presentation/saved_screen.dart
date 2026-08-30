@@ -177,7 +177,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                             .read(savedVenueIdsProvider.notifier)
                             .toggle(venue.id),
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) =>
                                 VenueDetailScreen(initialVenue: venue),
                           ),
