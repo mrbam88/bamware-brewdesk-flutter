@@ -1,0 +1,9 @@
+# Android package id (matches android/app/build.gradle.kts applicationId).
+package_name "io.bamware.brewdesk"
+
+# Play uploads authenticate with a Google Cloud service-account JSON via env
+# (the house pattern — see bamware-dating-app/fastlane/Appfile):
+#   SUPPLY_JSON_KEY = absolute path to the service-account .json
+# Never commit the key file or its contents. Provisioning steps:
+# submission/docs/SUBMISSION-RUNBOOK.md.
+json_key_file(ENV["SUPPLY_JSON_KEY"]) unless ENV["SUPPLY_JSON_KEY"].to_s.empty?

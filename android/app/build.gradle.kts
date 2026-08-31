@@ -7,7 +7,7 @@ plugins {
 }
 
 // Upload keystore, read from android/key.properties (gitignored, never committed).
-// See android/key.properties.template and docs/play/SUBMISSION-RUNBOOK.md for how
+// See android/key.properties.template and submission/docs/SUBMISSION-RUNBOOK.md for how
 // Bilal generates and fills this in on his own machine (Human-only ticket #5).
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
@@ -36,7 +36,7 @@ android {
         applicationId = "io.bamware.brewdesk"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Version scheme (documented in docs/play/SUBMISSION-RUNBOOK.md):
+        // Version scheme (documented in submission/docs/SUBMISSION-RUNBOOK.md):
         // versionName (pubspec `version` before the `+`) is semantic — bump on every
         // Play submission. versionCode (pubspec `version` after the `+`) must
         // strictly increase on every artifact uploaded to Play, including internal

@@ -6,7 +6,7 @@
 #
 # This repo does not generate or hold the keystore. Generating it and
 # registering the Play Console app are Human-only steps — see
-# docs/play/SUBMISSION-RUNBOOK.md and ticket #5.
+# submission/docs/SUBMISSION-RUNBOOK.md and ticket #5.
 #
 # Generate the upload keystore (run once, on Bilal's machine, keep the
 # output somewhere durable — losing it forfeits your Play Console app

@@ -34,7 +34,8 @@ keytool -genkey -v -keystore ~/upload-keystore.jks \
 ## 3. Build the real signed AAB
 
 ```bash
-flutter build appbundle --release
+bundle install                      # once — installs fastlane (root Gemfile)
+bundle exec fastlane android aab
 ```
 
 With `android/key.properties` present, `android/app/build.gradle.kts`
@@ -52,7 +53,7 @@ placeholder.
 
 ## 4. Create the app in Play Console
 
-- App name: see `docs/play/LISTING.md`.
+- App name: see `submission/docs/LISTING.md`.
 - Default language: en-US.
 - App or game: **App**. Free or paid: **Free**.
 - Declarations: not a government app, not primarily for children, no ads
@@ -60,10 +61,10 @@ placeholder.
 
 ## 5. App content section
 
-- **Data safety** — transcribe `docs/play/DATA-SAFETY.md`. Resolve its one
+- **Data safety** — transcribe `submission/docs/DATA-SAFETY.md`. Resolve its one
   open item (venue-engine location-logging retention) before submitting.
 - **Content rating** — run the IARC questionnaire using
-  `docs/play/CONTENT-RATING.md` as the answer key.
+  `submission/docs/CONTENT-RATING.md` as the answer key.
 - **Target audience and content** — general audience, not designed for
   children.
 - **News apps / COVID-19 apps / government apps** — No to all.
@@ -74,7 +75,7 @@ placeholder.
 ## 6. Store listing
 
 - Fill title, short description, full description, category, and contact
-  details from `docs/play/LISTING.md`. Two open decisions live there
+  details from `submission/docs/LISTING.md`. Two open decisions live there
   (category confirmation, contact email) — resolve both before publishing.
 - App icon (512×512) and feature graphic (1024×500): **blocked** — this
   repo still ships Flutter's default template launcher icon, not BrewDesk
@@ -86,20 +87,33 @@ placeholder.
 
 ## 7. Countries and pricing
 
-- BrewDesk's dataset is NYC-only (`README.md`, `docs/play/LISTING.md`
+- BrewDesk's dataset is NYC-only (`README.md`, `submission/docs/LISTING.md`
   description). **Decision needed:** restrict initial distribution to the
   US (recommended — avoids confusing installs from users the dataset can't
   serve) or release worldwide. Not decided by this ticket; pick a country
   list at this step.
 - Pricing: Free (matches "FREE AND ACCOUNTLESS" in the listing copy).
 
-## 8. Internal testing track
+## 8. Internal testing track (first upload: Console UI)
 
 - Create the Internal testing track, add your own email (and any other
   early testers) to the tester list.
-- Upload the signed AAB from step 3.
+- Upload the signed AAB from step 3 **through the Console UI** — Google
+  requires the app record's very first bundle to arrive that way.
 - Roll out to internal testing and install via the opt-in link to confirm
   the signed build installs and runs before wider distribution.
+
+## 8b. Wire fastlane for every upload after the first
+
+- Google Cloud console → create a service account, grant it access in Play
+  Console (Users and permissions → Invite new user → its email → Release
+  permission), create a JSON key, store it OUTSIDE the repo.
+- `export SUPPLY_JSON_KEY=/absolute/path/to/key.json` (shell profile or
+  password manager).
+- From then on, per release: bump `version:`'s `+N` in `pubspec.yaml`, add
+  `submission/metadata/android/en-US/changelogs/<N>.txt`, and run
+  `bundle exec fastlane android internal`. Listing/graphics changes ship
+  separately with `bundle exec fastlane android listing`.
 
 ## 9. Submit for review
 

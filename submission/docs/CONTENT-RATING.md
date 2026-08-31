@@ -42,7 +42,7 @@ versions, so this is a best-effort pointer, not a guaranteed exact label
 - Does the app share the user's physical location with other users, or
   allow the user to broadcast location publicly? **No.** Location is used
   only to rank venues for the requesting device; see
-  `docs/play/DATA-SAFETY.md`.
+  `submission/docs/DATA-SAFETY.md`.
 - Does the app allow users to share personal information with other
   users? **No.**
 

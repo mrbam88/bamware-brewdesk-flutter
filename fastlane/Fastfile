@@ -1,0 +1,60 @@
+default_platform(:android)
+opt_out_usage
+
+# Repo root, so lanes work no matter where fastlane decides to chdir.
+ROOT = File.expand_path("..", __dir__)
+AAB = File.join(ROOT, "build/app/outputs/bundle/release/app-release.aab")
+
+# All submission CONTENT (listing text, changelogs, store graphics,
+# screenshots, runbooks) lives under submission/ — this file is only the
+# rail that ships it. supply's expected layout inside metadata/:
+#   android/en-US/{title,short_description,full_description}.txt
+#   android/en-US/changelogs/<versionCode>.txt
+#   android/en-US/images/{icon.png,featureGraphic.png,phoneScreenshots/*}
+METADATA = File.join(ROOT, "submission/metadata/android")
+
+def require_play_key!
+  return unless ENV["SUPPLY_JSON_KEY"].to_s.strip.empty?
+
+  UI.user_error!(
+    "SUPPLY_JSON_KEY is not set (path to the Play service-account JSON). " \
+    "See submission/docs/SUBMISSION-RUNBOOK.md."
+  )
+end
+
+platform :android do
+  desc "Build the signed release AAB (requires android/key.properties)"
+  lane :aab do
+    Dir.chdir(ROOT) { sh("flutter build appbundle --release") }
+    UI.user_error!("AAB not found at #{AAB}") unless File.exist?(AAB)
+  end
+
+  desc "Build + upload the AAB to the internal testing track"
+  lane :internal do
+    require_play_key!
+    aab
+    upload_to_play_store(
+      track: "internal",
+      aab: AAB,
+      metadata_path: METADATA,
+      # The binary rail only — listing content ships via :listing so a
+      # build upload can never accidentally rewrite store copy.
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: false
+    )
+  end
+
+  desc "Push listing text, graphics, and screenshots from submission/metadata"
+  lane :listing do
+    require_play_key!
+    upload_to_play_store(
+      metadata_path: METADATA,
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_changelogs: true,
+      sync_image_upload: true
+    )
+  end
+end
