@@ -115,6 +115,13 @@ placeholder.
 - Google Cloud console → create a service account, grant it access in Play
   Console (Users and permissions → Invite new user → its email → Release
   permission), create a JSON key, store it OUTSIDE the repo.
+- In the SAME GCP project, enable the **Google Play Android Developer
+  API** (APIs & Services → enable `androidpublisher.googleapis.com`) —
+  uploads fail with PERMISSION_DENIED until it's on, and it takes a
+  minute or two to propagate after enabling.
+- Note: non-interactive shells don't read `~/.zshrc`, so agents/CI must
+  pass `SUPPLY_JSON_KEY` explicitly rather than relying on the profile
+  export.
 - `export SUPPLY_JSON_KEY=/absolute/path/to/key.json` (shell profile or
   password manager).
 - From then on, per release: bump `version:`'s `+N` in `pubspec.yaml`, add
