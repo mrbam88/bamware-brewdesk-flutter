@@ -46,6 +46,26 @@ platform :android do
     )
   end
 
+  desc "Regenerate launcher icon + store graphics from submission/assets-src"
+  lane :assets do
+    Dir.chdir(ROOT) do
+      mark_scripts = Dir["submission/scripts/make_*_mark.py"]
+      mark_scripts.each { |script| sh("python3 #{script}") }
+      sh("python3 submission/scripts/generate_play_assets.py")
+    end
+  end
+
+  desc "Capture marketing screenshots via the scripted emulator walk"
+  lane :screenshots do
+    package = CredentialsManager::AppfileConfig.try_fetch_value(:package_name)
+    Dir.chdir(ROOT) do
+      sh("flutter build apk --debug")
+      sh("#{ENV['HOME']}/Library/Android/sdk/platform-tools/adb install -r " \
+         "build/app/outputs/flutter-apk/app-debug.apk")
+      sh("bash submission/scripts/capture_screenshots.sh #{package}")
+    end
+  end
+
   desc "Push listing text, graphics, and screenshots from submission/metadata"
   lane :listing do
     require_play_key!

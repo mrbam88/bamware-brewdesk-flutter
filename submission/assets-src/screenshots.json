@@ -1,0 +1,12 @@
+{
+  "_comment": "Marketing screenshot walk for capture_screenshots.sh. Coordinates are px on the reference emulator (Pixel 10, 1080x2424). The light map shot comes AFTER the filter dismissal so tiles are warm — the first frames after a cold start show the branded loading view. Reuse in another app: swap the walk.",
+  "device": "1080x2424",
+  "launch_wait_s": 20,
+  "shots": [
+    {"name": "02-venue-detail", "taps": [[538, 2075]], "wait_s": 5},
+    {"name": "03-filters", "taps": [[4, "BACK"], [952, 252]], "wait_s": 3},
+    {"name": "01-spots-map", "taps": [[60, 700]], "wait_s": 3},
+    {"name": "04-saved", "taps": [[947, 2105], [540, 2290]], "wait_s": 4},
+    {"name": "05-spots-dark", "night": true, "relaunch": true, "taps": [], "wait_s": 20}
+  ]
+}

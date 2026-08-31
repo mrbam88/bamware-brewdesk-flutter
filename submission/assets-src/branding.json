@@ -1,0 +1,9 @@
+{
+  "app_name": "BrewDesk",
+  "tagline": "Know your work spot before you go",
+  "background_color": "#2D5A4C",
+  "foreground_color": "#FAF9F6",
+  "mark": "submission/assets-src/mark.png",
+  "headline_font": "fonts/HankenGrotesk-Variable.ttf",
+  "body_font": "fonts/Manrope-Variable.ttf"
+}
