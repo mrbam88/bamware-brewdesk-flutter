@@ -35,7 +35,7 @@ class _AppShellState extends State<AppShell> {
       extendBody: true,
       body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: GlassSurface(
-        opacity: 0.6,
+        opacity: 0.35,
         child: NavigationBar(
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,

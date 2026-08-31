@@ -53,7 +53,7 @@ class _WorkFitFilterButtonState extends ConsumerState<WorkFitFilterButton> {
                   ],
                 ),
                 child: GlassSurface(
-                  opacity: 0.72,
+                  opacity: 0.6,
                   borderRadius: BorderRadius.circular(18),
                   child: Material(
                     type: MaterialType.transparency,

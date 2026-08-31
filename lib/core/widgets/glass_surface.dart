@@ -17,8 +17,8 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.borderRadius = BorderRadius.zero,
-    this.opacity = 0.55,
-    this.sigma = 22,
+    this.opacity = 0.3,
+    this.sigma = 26,
   });
 
   final Widget child;
