@@ -55,4 +55,4 @@ icon and launch background are generated from
 dependency) — rerun it after any brand-color change and commit the regenerated
 `mipmap-*/ic_launcher.png` densities.
 
-Play submission prep and runbook: `docs/play/`.
+Play submission prep and runbook: `submission/docs/`.

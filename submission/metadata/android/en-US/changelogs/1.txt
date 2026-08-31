@@ -1,0 +1,1 @@
+Initial internal-testing release: NYC work-spot discovery with a transparent Work Fit score — laptop policy, Wi-Fi, outlets, seating, and noise, each claim with its source, confidence, and freshness.
