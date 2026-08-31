@@ -69,7 +69,12 @@ platform :android do
   desc "Push listing text, graphics, and screenshots from submission/metadata"
   lane :listing do
     require_play_key!
+    # supply wants a version code to anchor a metadata-only sync even with
+    # changelog upload skipped — read it from pubspec's `+N`.
+    version_code = File.read(File.join(ROOT, "pubspec.yaml"))[/^version:\s*[\d.]+\+(\d+)/, 1]
     upload_to_play_store(
+      track: "internal",
+      version_code: version_code.to_i,
       metadata_path: METADATA,
       skip_upload_aab: true,
       skip_upload_apk: true,
