@@ -22,3 +22,8 @@ storePassword=<upload-keystore-password>
 keyPassword=<upload-key-password>
 keyAlias=upload
 storeFile=/absolute/path/to/upload-keystore.jks
+
+# Google Maps SDK for Android client key (restricted to this package +
+# SHA-1s in the GCP console). Not a secret in the credential sense — it
+# ships inside the APK — but kept here so it stays out of the public repo.
+mapsApiKey=<maps-android-api-key>

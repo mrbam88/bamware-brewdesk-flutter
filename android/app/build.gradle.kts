@@ -44,6 +44,13 @@ android {
         // Both are read from pubspec.yaml via the Flutter Gradle plugin.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Maps SDK key: key.properties `mapsApiKey` wins, MAPS_API_KEY env
+        // is the CI/agent fallback, empty string otherwise (map renders
+        // blank but the app builds — keeps clean checkouts working).
+        manifestPlaceholders["MAPS_API_KEY"] =
+            (if (hasKeystoreProperties) keystoreProperties["mapsApiKey"] as String? else null)
+                ?: System.getenv("MAPS_API_KEY") ?: ""
     }
 
     signingConfigs {

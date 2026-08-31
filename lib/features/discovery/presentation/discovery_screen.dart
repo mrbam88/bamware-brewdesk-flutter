@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
+// LEARN: aliased — google_maps_flutter and the app's latlong2-based domain
+// both define LatLng; the domain keeps latlong2, the map edge converts.
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 
 import 'package:brewdesk/features/saved/application/saved_venue_ids.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,6 +24,7 @@ import 'package:brewdesk/features/venues/presentation/venue_widgets.dart';
 import 'package:brewdesk/features/venue_detail/presentation/venue_detail_screen.dart';
 import 'package:brewdesk/features/discovery/application/discovery_bloc.dart';
 import 'package:brewdesk/features/discovery/application/discovery_filters_controller.dart';
+import 'package:brewdesk/features/discovery/presentation/score_pin_renderer.dart';
 import 'package:brewdesk/features/discovery/presentation/work_fit_filter_menu.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
@@ -41,7 +45,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     connectivity: ref.read(connectivityServiceProvider),
   );
   StreamSubscription<DiscoveryState>? _blocSub;
-  final MapController _mapController = MapController();
+  gmaps.GoogleMapController? _mapController;
+  final ScorePinRenderer _pinRenderer = ScorePinRenderer();
+  Set<gmaps.Marker> _markers = const {};
+  List<Venue>? _lastPlannedVenues;
+  String? _mapStyleLight;
+  String? _mapStyleDark;
   final TextEditingController _searchController = TextEditingController();
 
   /// Backs the search field so map/header code can tell whether it's
@@ -73,6 +82,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   void initState() {
     super.initState();
     _searchFocus.addListener(_onFocusChanged);
+    _loadMapStyles();
     _bloc.add(const DiscoveryStarted());
     // The bloc's initial state is locating, so this reflects the real
     // initial state — assigned directly (not via setState) since the first
@@ -97,6 +107,47 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   }
 
   void _onFocusChanged() => setState(() {});
+
+  Future<void> _loadMapStyles() async {
+    final light = await rootBundle.loadString(
+      'assets/google_map_style_light.json',
+    );
+    final dark = await rootBundle.loadString(
+      'assets/google_map_style_dark.json',
+    );
+    if (!mounted) return;
+    setState(() {
+      _mapStyleLight = light;
+      _mapStyleDark = dark;
+    });
+  }
+
+  /// Rebuilds the marker set for [planned] off the build path. Marker icons
+  /// are async (bitmap rasterization), so build() only SCHEDULES the sync;
+  /// the setState lands when the batch is ready, and a stale batch (the
+  /// planned list changed underneath) is dropped instead of applied.
+  void _scheduleMarkerSync(List<Venue> planned) {
+    if (listEquals(planned, _lastPlannedVenues)) return;
+    _lastPlannedVenues = planned;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    Future(() async {
+      final markers = <gmaps.Marker>{};
+      for (final venue in planned) {
+        markers.add(
+          gmaps.Marker(
+            markerId: gmaps.MarkerId(venue.id),
+            position: gmaps.LatLng(venue.lat, venue.lng),
+            icon: await _pinRenderer.descriptorFor(venue.workScore, dpr),
+            anchor: const Offset(0.5, 0.5),
+            consumeTapEvents: true,
+            onTap: () => _openVenue(venue),
+          ),
+        );
+      }
+      if (!mounted || !identical(planned, _lastPlannedVenues)) return;
+      setState(() => _markers = markers);
+    });
+  }
 
   /// Keeps [_showBrandedLoading] in sync with the model, holding it visible
   /// for [_minBrandedLoadingDuration] once shown — see the class doc above.
@@ -149,8 +200,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       listenWhen: (previous, current) =>
           current.centerOrNull != null &&
           previous.centerOrNull != current.centerOrNull,
-      listener: (context, state) =>
-          _mapController.move(state.centerOrNull!, 13.5),
+      listener: (context, state) => _mapController?.animateCamera(
+        gmaps.CameraUpdate.newLatLngZoom(
+          gmaps.LatLng(
+            state.centerOrNull!.latitude,
+            state.centerOrNull!.longitude,
+          ),
+          13.5,
+        ),
+      ),
       child: BlocBuilder<DiscoveryBloc, DiscoveryState>(
         bloc: _bloc,
         builder: (context, state) {
@@ -162,51 +220,33 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               .watch(discoveryFiltersControllerProvider)
               .apply(state.venuesOrStale);
           final searching = _searchFocus.hasFocus;
+          _scheduleMarkerSync(MapMarkerPlanner.plan(venues));
           return Scaffold(
             body: searching
                 ? _searchFocusView(l10n, venues, state)
                 : Stack(
                     children: [
-                      FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter:
-                              state.centerOrNull ?? DiscoveryBloc.manhattan,
-                          initialZoom: 13.5,
+                      gmaps.GoogleMap(
+                        initialCameraPosition: gmaps.CameraPosition(
+                          target: gmaps.LatLng(
+                            (state.centerOrNull ?? DiscoveryBloc.manhattan)
+                                .latitude,
+                            (state.centerOrNull ?? DiscoveryBloc.manhattan)
+                                .longitude,
+                          ),
+                          zoom: 13.5,
                         ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'io.bamware.brewdesk',
-                            // Simulated retina (osm.org serves no @2x):
-                            // fetch one zoom deeper and scale down — the
-                            // fix for blurry raster tiles on high-density
-                            // phones.
-                            retinaMode: RetinaMode.isHighDensity(context),
-                          ),
-                          MarkerLayer(
-                            markers: MapMarkerPlanner.plan(venues)
-                                .map(
-                                  (venue) => Marker(
-                                    point: LatLng(venue.lat, venue.lng),
-                                    width: 40,
-                                    height: 40,
-                                    child: _MapPin(
-                                      venue: venue,
-                                      onTap: () => _openVenue(venue),
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                          RichAttributionWidget(
-                            attributions: [
-                              TextSourceAttribution(
-                                'OpenStreetMap contributors',
-                              ),
-                            ],
-                          ),
-                        ],
+                        onMapCreated: (controller) =>
+                            _mapController = controller,
+                        style: Theme.of(context).brightness == Brightness.dark
+                            ? _mapStyleDark
+                            : _mapStyleLight,
+                        markers: _markers,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        compassEnabled: false,
+                        mapToolbarEnabled: false,
+                        buildingsEnabled: false,
                       ),
                       SafeArea(
                         child: _searchAndFilters(
@@ -543,51 +583,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => VenueDetailScreen(initialVenue: venue),
-      ),
-    );
-  }
-}
-
-/// Score-forward solid capsule (flutter#6, native
-/// `MapAnnotationViews.VenueScorePin` parity): tier fill, white ring, mono
-/// digits. Deliberately composite-cheap — solid fill, no shadow, no blur —
-/// because the map repositions every pin on every pan frame (the native
-/// brewdesk#54 stutter lesson). The marker frame is the tap target; the
-/// capsule floats centered inside it.
-class _MapPin extends StatelessWidget {
-  const _MapPin({required this.venue, required this.onTap});
-  final Venue venue;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 44),
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: scoreColor(venue.workScore),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white, width: 1.5),
-          ),
-          child: Center(
-            child: Text(
-              venue.workScore.toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontFamily: AppFonts.label,
-                fontWeight: FontWeight.w700,
-                fontVariations: AppFonts.wght(700),
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

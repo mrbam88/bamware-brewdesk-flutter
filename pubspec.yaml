@@ -38,7 +38,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
-  flutter_map: ^8.3.1
   latlong2: ^0.10.1
   shared_preferences: ^2.5.5
   geolocator: ^14.0.3
@@ -54,6 +53,7 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
   bloc: ^9.2.1
+  google_maps_flutter: ^2.18.0
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +89,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/venue_snapshot.json
+    - assets/google_map_style_light.json
+    - assets/google_map_style_dark.json
 
   # Warm Utilitarian type roles (flutter#6, OFL — license texts in fonts/):
   # headline Hanken Grotesk, body Manrope, labels/numbers JetBrains Mono.
