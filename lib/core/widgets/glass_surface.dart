@@ -17,14 +17,17 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.borderRadius = BorderRadius.zero,
-    this.opacity = 0.72,
-    this.sigma = 18,
+    this.opacity = 0.55,
+    this.sigma = 22,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
 
   /// Tint strength over the blur; lower = glassier, higher = more solid.
+  /// Field feedback (2026-08-30, Pixel): 0.72+ read as a solid gray card —
+  /// the blur has to visibly do the work, so defaults now sit low enough
+  /// that map detail moves under the chrome.
   final double opacity;
   final double sigma;
 

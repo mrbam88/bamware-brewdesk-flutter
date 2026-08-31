@@ -469,7 +469,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 18)],
           ),
           child: GlassSurface(
-            opacity: 0.82,
+            opacity: 0.62,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
             child: venues.isEmpty
                 ? ListView(
