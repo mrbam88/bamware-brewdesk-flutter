@@ -1,64 +1,60 @@
 # Flutter State Management, Explained With One Real App
 
-I have been writing mobile apps for fifteen years, and Flutter is still the
-framework I forget fastest. Not because it is conceptually harder than
-UIKit or React Native, but because its state management story is usually
-taught as a shopping list. Should you use setState? Provider? Riverpod?
-Bloc? GetX? Every tutorial picks a favorite and shows you a counter app,
-and six months later you remember none of it.
+Flutter is the framework I forget fastest. The state management story is
+the reason: it gets taught as a package menu (setState! Provider! Riverpod!
+Bloc! GetX!) when the real skill is a sorting problem.
 
-What finally made it stick for me was a different question. Instead of
-asking "which package should I use," ask "what kind of state is this?"
-It turns out that almost everything in a real app is one of four kinds,
-and each kind has a natural home. Once you see the four kinds, the
-package debate mostly evaporates.
+> **State comes in four kinds. Each kind has a home. That's the whole
+> architecture.**
 
-This repo is BrewDesk, a work-café finder for Android, and it uses all
-four homes on purpose. This article walks through them using the actual
-code, so every claim here is something you can open and read.
+This repo is BrewDesk, a work-café finder for Android. It uses all four
+homes on purpose, so every example below is real code you can open.
 
-| Kind of state | Example in BrewDesk | Where it lives | If you know React |
+| Kind | Example here | Home | React equivalent |
 |---|---|---|---|
-| Ephemeral UI state | the selected tab | `setState` | `useState` |
-| Client state | search filters | a Riverpod `Notifier` | Zustand |
-| Server state | saved venues, venue detail | a Riverpod `AsyncNotifier` | TanStack Query |
-| A state machine | the discovery flow | one Bloc | Redux with RxJS |
+| Ephemeral | selected tab | `setState` | `useState` |
+| Client | search filters | `Notifier` | Zustand |
+| Server | saved venues | `AsyncNotifier` | TanStack Query |
+| Machine | discovery flow | one Bloc | Redux + RxJS |
 
-## Ephemeral state: setState is not a code smell
+When you can't remember anything else, run this:
 
-Let's start with the kind everyone is embarrassed by. The bottom tab bar in
-`lib/features/shell/presentation/app_shell.dart` keeps its selected index
-in a plain `StatefulWidget` and calls `setState` when you tap a tab. There
-is no provider, no store, no architecture. That is the entire
-implementation, and it is the right one.
+```mermaid
+flowchart TD
+  A([a new piece of state]) --> B{Does anything outside\nthis widget need it?}
+  B -- no --> S[/"setState"/]
+  B -- yes --> C{Did it come\nfrom the network?}
+  C -- no --> N[/"Notifier"/]
+  C -- yes --> D{Multi-phase flow?\nRaces? Typed failures?}
+  D -- no --> AN[/"AsyncNotifier"/]
+  D -- yes --> BL[/"Bloc"/]
+```
 
-Here is the test I use. If this value disappeared when the user navigated
-away, would anyone care? Does any other widget need to know about it? If
-both answers are no, the state is ephemeral, and local widget state is
-where it belongs. Hoisting a tab index into a global store is the Flutter
-version of putting a text field's value in Redux. Most of us did that once
-in 2016 and learned better.
+Now the four kinds, one at a time.
 
-BrewDesk keeps a second, less obvious thing local: a small timer that
-holds the branded loading screen on screen for 300 milliseconds so it
-never flashes. That timer watches the real state of the app, but it is
-purely presentational bookkeeping, so it stays inside the widget. Deciding
-what to keep *out* of your architecture is half of having one.
+---
 
-## Client state: a Notifier is a small store
+## 1 · Ephemeral state: setState, unapologetically
 
-The second kind of state appears the first time two widgets need to agree
-on something. In BrewDesk that is the filter menu: laptop friendliness,
-a Wi-Fi floor, an outlets floor, a venue type, and the search query. The
-filter button shows a badge with the active count, the map reacts to the
-selection, and the empty state offers to clear everything. Three widgets,
-one truth.
+The tab bar (`app_shell.dart`) keeps its index in a `StatefulWidget` and
+calls `setState`. No provider, no store. Correct.
 
-This is client state. The user owns it, it describes how they want to see
-data that already loaded, and nothing about it involves a network. In
-BrewDesk it lives in a single immutable value plus a small Riverpod
-`Notifier` that mutates it, in
-`lib/features/discovery/application/discovery_filters_controller.dart`:
+The smell test: *would anyone care if this value vanished on navigation?
+Does any other widget need it?* Two no's means the state is ephemeral and
+belongs in the widget. Hoisting a tab index into a global store is the
+Flutter version of putting a text field in Redux.
+
+**Remember:** local state is not technical debt. It's the default, and you
+promote out of it only with a reason.
+
+---
+
+## 2 · Client state: a Notifier is a ten-line store
+
+The filter menu (Wi-Fi floor, outlets, venue type, laptop policy, search
+query) is state the *user* owns. Three widgets read it; none of them own
+it. So it lives in a small store,
+`discovery_filters_controller.dart`:
 
 ```dart
 @riverpod
@@ -66,213 +62,210 @@ class DiscoveryFiltersController extends _$DiscoveryFiltersController {
   @override
   DiscoveryFilters build() => const DiscoveryFilters();
 
-  void setMinWifi(WifiLevel? value) => state = state.copyWith(minWifi: value);
-  // ...four more one-line mutators, and a reset
+  void setMinWifi(WifiLevel? v) => state = state.copyWith(minWifi: v);
+  // ...four more one-liners
 }
 ```
 
-If you internalize just two ideas about Riverpod, you can reconstruct the
-rest from documentation when you need it.
+Two rules carry all of Riverpod:
 
-The first idea is that state is a value you replace, never an object you
-mutate. `DiscoveryFilters` is a frozen immutable class, and every mutator
-assigns a new copy through `copyWith`. This looks like ceremony until you
-remember how change detection works. Flutter, like React, decides whether
-anything changed by comparing the old state to the new one. If you mutate
-an object in place, the comparison sees the same object and nothing
-rebuilds. Immutable values make that entire class of bug impossible to
-write.
+**Replace, never mutate.** Every mutator assigns a fresh `copyWith` copy.
+Change detection is `old == new`; mutate in place and nothing rebuilds.
+Immutable values make the bug unwritable, which beats remembering not to
+write it.
 
-The second idea is the difference between `ref.watch` and `ref.read`.
-Watching means subscribing: rebuild this widget whenever the value
-changes. Reading means grabbing the current value once, without
-subscribing. The rule of thumb is watch in build methods, read in
-callbacks. The filter badge watches the count so it repaints on every
-change; the reset button reads the controller inside `onPressed` because a
-button press does not need a subscription. There is a lint package,
-`riverpod_lint`, that enforces this mechanically, and this repo runs it.
+**Watch in build, read in callbacks.** `ref.watch` subscribes (the filter
+badge repaints on every change). `ref.read` grabs the value once (the
+reset button, inside `onPressed`). `riverpod_lint` enforces this like
+eslint enforces the rules of hooks.
 
-One more thing worth noticing: the filtered venue list is never stored
-anywhere. The discovery screen computes `filters.apply(venues)` during
-build, every time. Derived data should stay derived. The moment you cache
-a filtered copy somewhere, you have two sources of truth and a lifelong
-job keeping them in sync.
+And one habit: the filtered list is computed at render time,
+`filters.apply(venues)`, never stored. Stored derived data is a second
+source of truth you now babysit forever.
 
-## A short detour: the provider graph is your dependency injection
+**Remember:** small stores, immutable values, watch-vs-read. That's 90%
+of Riverpod.
 
-Before the async material makes sense, you need one structural idea.
-Every service and repository in BrewDesk is exposed to the app as a
-provider, declared right next to the class it provides:
+---
+
+## 3 · Server state: delete your loading flags
+
+This is where hand-rolled state actually hurts. Here's real code this
+repo used to ship (condensed from the deleted `SavedViewModel`):
 
 ```dart
-@Riverpod(keepAlive: true)
-VenueRepository venueRepository(Ref ref) =>
-    ApiVenueRepository(ref.watch(venueApiProvider));
-```
+// BEFORE — five mechanisms, synchronized by hand
+class SavedViewModel extends ChangeNotifier {
+  bool _loading = false;
+  List<Venue> _venues = [];
+  List<String> _failedIds = [];
+  int _generation = 0;                       // race guard, hand-rolled
 
-Look closely at the types. The function's return type is
-`VenueRepository`, which is an abstract interface defined in the domain
-layer. The concrete class, `ApiVenueRepository`, lives in the data layer
-and speaks HTTP. Because the provider's declared type is the interface,
-nothing else in the app can even see the implementation. That one line is
-dependency inversion, and the compiler enforces it.
-
-This buys you three things. The app's `main` function shrinks to about
-ten lines, because nobody hand-builds an object graph and threads it down
-through widget constructors anymore; the git history of this repo shows
-what that looked like before, and it was not pretty. Tests stop mocking
-plumbing and just swap leaves, since `ProviderScope(overrides: [...])`
-replaces any provider for the whole subtree underneath it, which is
-`jest.mock` with types. And writing a fake repository takes about twenty
-lines of plain Dart, because implementing a small interface is easy and
-stubbing an HTTP client is not.
-
-## Server state: AsyncNotifier is your useQuery
-
-Now the kind of state that causes real production bugs. Server state is
-anything fetched from a network: it is asynchronous, it can fail, it can
-be stale, and two requests for it can race. This is where hand-rolled
-solutions quietly fall apart.
-
-I can show you, because this repo used to contain one. The old Saved
-screen was driven by a hand-written `ChangeNotifier` holding a loading
-flag, a list of venues, a list of failed IDs, and a manual listener wired
-to another notifier. Its crown jewel was a `_generation` counter,
-incremented on every load, so that a slow response from an old load could
-be recognized and thrown away when it arrived after a newer one. Five
-mechanisms, all synchronized by hand, all capable of disagreeing with
-each other.
-
-The replacement is one class in
-`lib/features/saved/application/saved_spots.dart`:
-
-```dart
-@riverpod
-class SavedSpotsController extends _$SavedSpotsController {
-  @override
-  Future<SavedSpots> build() async {
-    final ids = ref.watch(savedVenueIdsProvider);
-    final repository = ref.watch(venueRepositoryProvider);
-    // hydrate the ids into venues, keeping per-id failures visible
+  Future<void> load() async {
+    final generation = ++_generation;
+    _loading = true; notifyListeners();
+    // ...fetch...
+    if (generation != _generation) return;   // stale response arrived late
+    _venues = venues; _loading = false; notifyListeners();
   }
 }
 ```
 
-Notice there is no loading flag, no listener, and no generation counter,
-and yet all three problems are solved. Because `build` watches the saved
-IDs, every save or unsave automatically re-runs the hydration; the
-subscription replaces the hand-wired listener. Because Riverpod discards
-a superseded future when `build` re-runs, the race that motivated the
-generation counter cannot happen; the counter was deleted, not ported.
-And because the widget receives a single `AsyncValue`, which is always
-exactly one of loading, error, or data, the screen's
-`when(loading: ..., error: ..., data: ...)` will not compile if a branch
-is missing. I want to dwell on that last one. The old screen had no error
-rendering at all, not because anyone decided that, but because nothing
-forced anyone to write it. Now the compiler does.
+Loading flag. Two lists. A listener wired to another notifier (not shown).
+A generation counter to survive races. Any two of them can disagree, and
+nothing forces the screen to handle errors, so it didn't.
 
-Two smaller conveniences round out the story. Passing
-`skipLoadingOnReload: true` keeps the previous list on screen while a
-re-hydration runs, which is the stale-while-revalidate behavior you know
-from TanStack Query. And the venue detail screen shows what happens when
-a provider takes an argument: `build(String venueId)` creates an
-independent, individually cached instance per venue, the same idea as
-`useQuery(['venue', id])`, and marking it `autoDispose` means each
-instance is evicted when its last watcher goes away. A query key and a
-garbage collection policy, both expressed in the method signature.
-
-## The fourth kind: when a flow is a machine, model it as one
-
-Most features never need more than the three kinds above, and reaching
-for heavy machinery anyway is how Flutter codebases drown in boilerplate.
-But BrewDesk has one flow that is genuinely different: the discovery
-funnel that runs every single session.
-
-Consider what it has to do. Resolve the device location, during which the
-OS permission prompt may or may not appear, and the user may refuse.
-Search the venue engine from wherever that left us. Land in one of
-several outcomes: results, an empty area, "you're offline," or "the
-engine is down." If offline, watch connectivity and retry by itself the
-moment the network returns. Survive the user mashing the retry button,
-and cancel an in-flight search if they tap "use my location" again.
-
-That is not a value in a store. That is a state machine, with phases,
-failure types, an event source that isn't the user, and two different
-answers to "what happens when things overlap." It is the one place this
-codebase uses Bloc, in
-`lib/features/discovery/application/discovery_bloc.dart`, and three ideas
-justify the ceremony.
-
-First, sealed states. The funnel is always exactly one of `locating`,
-`searching`, `loaded`, or `failed`, and each variant carries only the
-data that phase can have. It is impossible to construct a state that is
-loading and errored at once, or that has error text without an error,
-because no such type exists. The previous implementation tracked four
-independent mutable fields that could disagree; this is the same
-information as one value that cannot. Failures are types too: an
-`offline` failure arms the automatic retry, an `engine` failure carries
-the server's message and waits for the user. When two errors recover
-differently, they deserve different types, not different strings.
-
-Second, event transformers, which are concurrency policy you can read:
+The replacement is one method (`saved_spots.dart`):
 
 ```dart
-on<DiscoveryStarted>((event, emit) => _locateAndSearch(emit),
-    transformer: restartable());
-on<DiscoveryRetryPressed>((event, emit) => _locateAndSearch(emit),
-    transformer: droppable());
+// AFTER — the model does all five jobs
+@riverpod
+class SavedSpotsController extends _$SavedSpotsController {
+  @override
+  Future<SavedSpots> build() async {
+    final ids = ref.watch(savedVenueIdsProvider);   // the subscription
+    final repo = ref.watch(venueRepositoryProvider);
+    // hydrate ids → venues, keeping per-id failures visible
+  }
+}
 ```
 
-`restartable` means a new event cancels the work in progress, so the
-newest intent wins; if you know RxJS, this is `switchMap`. `droppable`
-means new events are ignored while one is being handled, which is what
-you want for a retry button being mashed; that is `exhaustMap`. The old
-code's answer to overlapping loads was that two async methods interleaved
-their writes and the last one to finish won something. Now each event
-declares its policy in one word, and the connectivity-restored event
-flows through the same pipeline as a user's tap, so the self-healing
-path is not a special case bolted on the side.
+Follow one save through the system and you can see why everything else
+became unnecessary:
 
-Third, the observer. `main.dart` sets `Bloc.observer` once, and from then
-on every transition in the app, as an event name and a before-and-after
-state, flows through a single class that forwards them to an analytics
-stub. Because state can only change through events, this is a complete
-trace of the funnel: how often users deny location, how often offline
-heals itself, where sessions die. No analytics calls are sprinkled
-through feature code. This is what Redux middleware used to give you, and
-it is the honest answer to why Bloc's ceremony can be worth paying for.
-Try to retrofit that trace onto a screen full of scattered `setState`
-calls.
+```mermaid
+sequenceDiagram
+  participant U as User taps save
+  participant Ids as savedVenueIds (Notifier)
+  participant SS as savedSpots (AsyncNotifier)
+  participant W as Saved screen
+  U->>Ids: toggle(id)
+  Ids->>SS: watched value changed → build() re-runs
+  Note over SS: an in-flight old build?<br/>discarded automatically
+  SS->>W: AsyncValue: loading → data
+  Note over W: skipLoadingOnReload keeps the<br/>old list up while it refreshes
+```
 
-There is one more habit in this screen worth stealing even if you never
-use Bloc: rendering and side effects are split. The widget tree is built
-inside a `BlocBuilder`, which must stay a pure function of state, and the
-map camera flies to a new position inside a `BlocListener`, which runs
-once per transition. Navigation and snackbars belong on the listener
-side. Mixing them into build methods is how you get a snackbar that fires
-three times because the widget rebuilt three times.
+- The race counter? `build()` re-runs and Riverpod discards the
+  superseded future. Deleted, not ported.
+- The listener wiring? `ref.watch` *is* the subscription.
+- The loading flag? The widget gets one `AsyncValue`, always exactly
+  loading *or* error *or* data, and `when()` won't compile with a branch
+  missing. The old screen had no error UI because nothing demanded one.
+  Now the compiler demands it.
 
-## How you know the state ended up in the right place
+Per-item caching is the same idea with an argument: the venue detail
+provider is `build(String venueId)`, one cached instance per venue, and
+`autoDispose` evicts it when its screen pops. If you know TanStack:
+family is the query key, autoDispose is gcTime.
 
-The quiet payoff of sorting state by kind is what happens to the tests.
-The filter logic tests as plain Dart functions, with no widgets and no
-fakes at all. Every AsyncNotifier tests with a `ProviderContainer` and a
-twenty-line fake repository, with no widget pumping. The Bloc tests
-assert exact sequences of states, which is only a readable thing to write
-because the states are immutable values with real equality. And one
-widget test proves the Saved screen renders all three async states,
-including the error state that did not exist until the type system
-demanded it.
+**Remember:** if you're writing a loading flag by hand, you're rebuilding
+`AsyncNotifier` badly.
 
-That suggests a diagnostic worth keeping. When some piece of logic is
-painful to test, it is usually not a testing problem. It is state living
-in the wrong row of the table.
+---
 
-*The decision record, including the options that lost and the costs we
-accepted, is in `docs/adr/0001-state-management.md`. A file-by-file tour
-with interview-style questions is in `docs/LEARNING_GUIDE.md`. The
-refactor that produced all of this is thirteen commits written to be read
-in order: `git log --reverse bbdbe20..27ae087`.*
+## Interlude · Providers are your DI container
+
+Everything above quietly relied on this. Each service is declared as a
+provider next to its class, and the graph wires itself:
+
+```mermaid
+flowchart LR
+  prefs[SharedPreferences] --> store[SavedVenuesStore]
+  store --> ids[savedVenueIds]
+  api[VenueApi] --> repo["VenueRepository\n(interface, domain layer)"]
+  ids --> spots[savedSpots]
+  repo --> spots
+  repo --> detail["venueDetail(id)"]
+  repo --> bloc[DiscoveryBloc]
+```
+
+The detail that matters: the provider's declared type is the **interface**
+(`VenueRepository`, defined in the domain layer), while the HTTP class
+stays hidden in the data layer. Dependency inversion in one line, enforced
+by the compiler.
+
+Payoff: `main.dart` is ten lines. A fake repository is twenty lines of
+plain Dart, because it implements an interface instead of stubbing HTTP.
+And `ProviderScope(overrides: [...])` swaps any node for a whole test —
+`jest.mock`, but typed.
+
+---
+
+## 4 · The state machine: one flow earns a Bloc
+
+Every session runs the discovery funnel: get a location (the permission
+prompt may appear, the user may refuse), search, then land somewhere —
+results, empty, offline, or engine-down. Offline must heal itself when
+the network returns. The retry button will be mashed. A new "use my
+location" tap must cancel the search in flight.
+
+That's not a value in a store. That's a machine:
+
+```mermaid
+stateDiagram-v2
+  [*] --> locating: DiscoveryStarted
+  locating --> searching: located (or fallback + reason)
+  searching --> loaded: results / empty
+  searching --> offline: no network
+  searching --> engineDown: bad response
+  offline --> searching: connectivity returns (automatic)
+  engineDown --> locating: Try again
+  loaded --> locating: use my location
+```
+
+Bloc's ceremony buys three things here, and only here.
+
+**Illegal states won't compile.** The funnel is a sealed type: exactly one
+of `locating / searching / loaded / failed`, each carrying only what that
+phase can know. "Loading and errored at once" isn't a bug to catch — it's
+a value that can't exist. Failures are types too: `offline` arms the
+auto-retry; `engine(message)` waits for a human. Different recovery,
+different type.
+
+**Races become one word each.**
+
+```dart
+on<DiscoveryStarted>(..., transformer: restartable());  // new intent cancels old — switchMap
+on<DiscoveryRetryPressed>(..., transformer: droppable()); // mashing ignored — exhaustMap
+```
+
+The old code answered "what if two loads overlap?" with interleaved field
+writes. Now each event declares its policy, and the connectivity event
+rides the same pipeline as user taps.
+
+**Every transition is observable in one place.** `Bloc.observer`, set once
+in `main.dart`, logs every `event, from → to` app-wide into an analytics
+stub. A complete funnel trace (who denies location, how often offline
+heals) with zero instrumentation in feature code. This is the honest
+answer to "why tolerate Bloc": try bolting that onto scattered setState.
+
+One habit to steal regardless: **builders render, listeners act.** The
+widget tree is a `BlocBuilder` (pure, may run any number of times); the
+map camera flies in a `BlocListener` (once per transition). Snackbars and
+navigation always go on the listener side.
+
+**Remember:** Bloc is for machines. One per app is normal. Zero is fine.
+
+---
+
+## The tell
+
+Sorting state by kind shows up in the tests:
+
+- filter logic → pure Dart functions, no fakes at all
+- every AsyncNotifier → `ProviderContainer` + a 20-line fake, no widgets
+- the Bloc → exact state sequences, writable only because states are
+  values with real equality
+- one widget test proves loading, error, *and* data all render
+
+**When something is painful to test, it's usually state in the wrong row
+of the table.** That heuristic found every bug this refactor fixed.
+
+*Deeper: `docs/adr/0001-state-management.md` (the decision record),
+`docs/LEARNING_GUIDE.md` (file-by-file tour + interview Q&A), and
+`git log --reverse bbdbe20..27ae087` — the refactor as thirteen readable
+commits.*
 
 ---
 
