@@ -53,6 +53,13 @@ placeholder.
 
 ## 4. Create the app in Play Console
 
+- **PACKAGE NAME — the one irreversible field.** Wherever the Console (or
+  any dialog in the flow) asks for a package/application id, it must be
+  exactly `io.bamware.brewdesk`. The record binds to whatever package it
+  sees first and can NEVER be changed — a wrong value means deleting the
+  draft app and redoing every content form. When in doubt: upload the
+  signed AAB as the very first action after creating the record, so the
+  binding comes from the real artifact.
 - App name: see `submission/docs/LISTING.md`.
 - Default language: en-US.
 - App or game: **App**. Free or paid: **Free**.
