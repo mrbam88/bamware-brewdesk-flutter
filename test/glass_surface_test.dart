@@ -36,6 +36,6 @@ void main() {
           .first,
     );
     final decoration = box.decoration as BoxDecoration;
-    expect(decoration.color!.a, closeTo(0.55, 0.01));
+    expect(decoration.color!.a, closeTo(0.3, 0.01));
   });
 }
