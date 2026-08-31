@@ -5,11 +5,14 @@ import 'package:brewdesk/features/venues/domain/venue.dart';
 import 'package:brewdesk/l10n/app_localizations.dart';
 import 'package:brewdesk/core/theme/app_theme.dart';
 
+/// Warm Utilitarian tier re-map (brewdesk#98 / flutter#6): green → sage →
+/// deep sand → destructive, matching native `ScoreTier.color`. Fill-only —
+/// these sit behind fixed white text in both appearances.
 Color scoreColor(int score) {
   if (score >= 75) return AppColors.green;
-  if (score >= 60) return AppColors.scoreGood;
-  if (score >= 45) return AppColors.scoreMixed;
-  return const Color(0xFF9B5A52);
+  if (score >= 60) return AppColors.moss;
+  if (score >= 45) return AppColors.sandDeep;
+  return AppColors.berry;
 }
 
 /// "Aug 1" for an ISO date string (`yyyy-MM-dd`, or a longer ISO datetime —
@@ -53,10 +56,14 @@ class ScoreBadge extends StatelessWidget {
       ),
       child: Text(
         score.toString(),
+        // Score digits are a JetBrains Mono role (flutter#6) — numbers and
+        // eyebrows share the label face app-wide.
         style: TextStyle(
           color: Colors.white,
           fontSize: compact ? 13 : 16,
-          fontWeight: FontWeight.w800,
+          fontFamily: AppFonts.label,
+          fontWeight: FontWeight.w700,
+          fontVariations: AppFonts.wght(700),
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
@@ -123,7 +130,9 @@ class _ScoreTile extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontFamily: AppFonts.label,
+              fontWeight: FontWeight.w700,
+              fontVariations: AppFonts.wght(700),
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -139,7 +148,9 @@ class _ScoreTile extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 9,
-                fontWeight: FontWeight.w800,
+                fontFamily: AppFonts.label,
+                fontWeight: FontWeight.w700,
+                fontVariations: AppFonts.wght(700),
                 letterSpacing: 0.4,
               ),
             ),

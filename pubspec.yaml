@@ -89,6 +89,20 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/venue_snapshot.json
+
+  # Warm Utilitarian type roles (flutter#6, OFL — license texts in fonts/):
+  # headline Hanken Grotesk, body Manrope, labels/numbers JetBrains Mono.
+  # Variable TTFs; weights selected via the wght axis (see AppFonts.wght).
+  fonts:
+    - family: HankenGrotesk
+      fonts:
+        - asset: fonts/HankenGrotesk-Variable.ttf
+    - family: Manrope
+      fonts:
+        - asset: fonts/Manrope-Variable.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: fonts/JetBrainsMono-Variable.ttf
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
