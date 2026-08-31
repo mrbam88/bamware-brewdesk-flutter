@@ -6,6 +6,13 @@
         android:label="BrewDesk"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Google Maps SDK key. Injected from android/key.properties
+             (mapsApiKey) or the MAPS_API_KEY env var via a manifest
+             placeholder in build.gradle.kts — never hardcoded. The key is
+             a restricted Android client key (package + SHA-1 bound). -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
