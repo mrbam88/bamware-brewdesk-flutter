@@ -178,6 +178,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                           TileLayer(
                             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'io.bamware.brewdesk',
+                            // Simulated retina (osm.org serves no @2x):
+                            // fetch one zoom deeper and scale down — the
+                            // fix for blurry raster tiles on high-density
+                            // phones.
+                            retinaMode: RetinaMode.isHighDensity(context),
                           ),
                           MarkerLayer(
                             markers: MapMarkerPlanner.plan(venues)
@@ -536,7 +541,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   void _openVenue(Venue venue) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => VenueDetailScreen(initialVenue: venue)),
+      MaterialPageRoute<void>(
+        builder: (_) => VenueDetailScreen(initialVenue: venue),
+      ),
     );
   }
 }
