@@ -1,0 +1,1 @@
+Internal testing build 2: Warm Utilitarian visual pass — bundled brand fonts (Hanken Grotesk, Manrope, JetBrains Mono), score-forward capsule map pins, compact search header.
